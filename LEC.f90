@@ -1,7 +1,5 @@
-!  Compile on Huygens with
-!    xlf90 -O3 -o SALT_BUDGET SALT_BUDGET.f90 -lnetcdf -lnetcdff
-!
-program ENERGY_BUDGET
+program LEC
+implicit none
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 !
@@ -10,8 +8,6 @@ program ENERGY_BUDGET
 !  the input parameters
 !  
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-!   use netcdf 
-implicit none
 
 !===============================================================================
 !  variables
@@ -33,6 +29,7 @@ nrec_SWREST, nrec_SSREST, nrec_RUNOFF, nrec_UEU, nrec_VNU, nrec_UEV,        &
 nrec_VNV, nrec_WTU, nrec_WTV, nrec_UET, nrec_VNT, nrec_WTT, nrec_UES,       &
 nrec_VNS, nrec_WTS, nrec_ADVT, nrec_ADVS, nrec_URHO, nrec_VRHO, nrec_WRHO,  &
 nrec_PDW, nrec_UPD, nrec_VPD, nrec_WPD
+! obsolete: RHO2
 
 character*120 :: grid_file, kmt_file, in_depths, pbc_file, tavg_file
 character*3   :: year
@@ -43,7 +40,8 @@ rKm_int, rKe_int, rPm_int, rPe_int,                                         &
 gKm_int, gPmh_int, gPms_int, gPm_int,                                       &
 gKe_int, gPeh_int, gPes_int, gPe_int,                                       &
 cPem_int, cKem_int, cPKm_int, cPKe_int,                                     &
-dPm, dPe, dKm, dKe
+dPm, dPe, dKm, dKe,                                                         &
+V2U2, V2U2_vol
 
 double precision :: volume, RHO_new, PD_top, PD_bottom
 
@@ -58,11 +56,10 @@ integer, dimension(:,:), allocatable :: kmT
 
 real, dimension(:,:), allocatable ::                                        &
 ALPHA01, SHF, BETA01, SFWF, STFRHO, SSFRHO, TAUX, TAUY, UTAUX, VTAUY,       &
-UVEL_k, VVEL_k, KE_k, RHO_k, RHO2_k, Q_k, PDU_k, PDV_k, WVEL_k, UVEL2_k,    &
-VVEL2_k, UV_k, UW_k,  VW_k, RHOW_k, PD_k, PD2_k, RHOU_k, RHOV_k, SALT_k,    &
-gPmh, gPms, gPm, gPeh, gPes, gPe, gKm, gKe, TT_gKe, TT_gKm, rKm_k, rKe_k,   &
+RHOW_k, RHOU_k, RHOV_k,    &
+gPmh, gPms, gPm, gPeh, gPes, gPe, gKm, gKe, TT_gKe, TT_gKm,    &
 EVAP, PRECIP, SWREST, SSREST, RUNOFF, EVAPRHO, PRECIPRHO, SWRESTRHO,        &
-SSRESTRHO, RUNOFFRHO, SWNET, LWNET, LATENT, SENSIBLE, TSREST, TEMP_k, PDW_k,&
+SSRESTRHO, RUNOFFRHO, SWNET, LWNET, LATENT, SENSIBLE, TSREST,&
 gPt, gKt, TT_gKt, rKt_k,                                                    &
 UEU_k, UEV_k, VNU_k, VNV_k, WTU_k, WTV_k, UUE_k, VUN_k, UTE_k, VTN_k,       &
 UEU_eddy_k, UEV_eddy_k, VNU_eddy_k, VNV_eddy_k,                             &
@@ -74,11 +71,11 @@ WUU_WTU_eddy_k,  WUU_WTV_eddy_k, WTT_WTU_eddy_k, WTT_WTV_eddy_k
 
 
 real, dimension(:,:,:), allocatable ::                                      &
-UVEL, VVEL, KE, RHO, RHO2, Q, RHOU, RHOV, WVEL, UVEL2, VVEL2, UV, UW, VW,   &
+UVEL, VVEL, KE, RHO, Q, RHOU, RHOV, WVEL, UVEL2, VVEL2, UV, UW, VW,   &
 RHOW, PD, PD2, PDU, PDV, rKm, rKe, rPm, rPe, cPem, cKem, cPKm, cPKe, SALT,  &
 TTT_UVEL, TTT_VVEL, TTT_UVEL2, TTT_VVEL2, TTT_UV, TTT_UW, TTT_VW,           &
 DRHODX, DRHODY, DUDX, DUDY, DUDZ, DVDX, DVDY, DVDZ, DPDDX, DPDDY,           &
-TTT_WVEL, TTT_RHOW, TTT_PDW,  TTT_Km, TTT_Ke, TEMP, PDW,                  &
+TTT_WVEL, TTT_RHOW, TTT_PDW,  TTT_rKm, TTT_rKe, TEMP, PDW,                  &
 WUU_WVEL, WTT_WTU_eddy, WTT_WTV_eddy, TTT_WTU_eddy, TTT_WTV_eddy
 
 double precision, dimension(:), allocatable ::                              &
@@ -112,9 +109,6 @@ g = 9.806, salinity_factor = -34.7*1.0E-04, RE = 6.37E06
 ! (msu*cm/s)"
 
 
-!netCDF
-include 'netcdf.inc'
-
 write (*,*) ''
 write (*,*) '--- ENERGY BUDGET ---'
 write (*,*) ''
@@ -123,40 +117,42 @@ write (*,*) ''
 !  user input
 !===============================================================================
 
-read  (*,*) imt, jmt, km
+read  (*,*)        imt, jmt, km
 read  (*,'(a120)') grid_file
 read  (*,'(a120)') kmt_file
 read  (*,'(a120)') in_depths
 read  (*,'(a120)') pbc_file
 read  (*,'(a120)') tavg_file
-read  (*,'(a3)') year
-read  (*,*) nrec_UVEL, nrec_VVEL, nrec_UVEL2, nrec_VVEL2, nrec_STFRHO,      &
-nrec_SSFRHO, nrec_EVAPRHO, nrec_PRECIPRHO, nrec_SWRESTRHO, nrec_SSRESTRHO,  &
-nrec_RUNOFFRHO, nrec_UTAUX, nrec_VTAUY, nrec_ALPHA01, nrec_BETA01, nrec_KE, &
-nrec_TEMP, nrec_SALT, nrec_RHO, nrec_UV, nrec_SSH, nrec_SWNET, nrec_LWNET,  &
-nrec_LATENT, nrec_SENSIBLE, nrec_TSREST, nrec_EVAP, nrec_PRECIP,            &
-nrec_SWREST, nrec_SSREST, nrec_RUNOFF, nrec_SHF, nrec_SFWF,                 &
-nrec_TAUX, nrec_TAUY, nrec_WVEL, nrec_UEU, nrec_VNU, nrec_UEV, nrec_VNV,    &
-nrec_WTU, nrec_WTV, nrec_UET, nrec_VNT, nrec_WTT, nrec_UES, nrec_VNS,       &
-nrec_WTS, nrec_ADVT, nrec_ADVS, nrec_Q, nrec_PD, nrec_PD2, nrec_RHO2,       &
-nrec_UW, nrec_VW, nrec_RHOU, nrec_RHOV, nrec_RHOW, nrec_URHO, nrec_VRHO,    &
-nrec_WRHO, nrec_PDW, nrec_PDU, nrec_PDV, nrec_UPD, nrec_VPD, nrec_WPD,      &
-nrec_UEU, nrec_UEV, nrec_VNU, nrec_VNV, nrec_WTU, nrec_WTV
+read  (*,'(a3)')   year
+read  (*,*) nrec_UVEL, nrec_VVEL, nrec_UVEL2, nrec_VVEL2, nrec_STFRHO,         &
+  nrec_SSFRHO, nrec_EVAPRHO, nrec_PRECIPRHO, nrec_SWRESTRHO, nrec_SSRESTRHO,   &
+  nrec_RUNOFFRHO, nrec_UTAUX, nrec_VTAUY, nrec_ALPHA01, nrec_BETA01, nrec_KE,  &
+  nrec_TEMP, nrec_SALT, nrec_RHO, nrec_UV, nrec_SSH, nrec_SWNET, nrec_LWNET,   &
+  nrec_LATENT, nrec_SENSIBLE, nrec_TSREST, nrec_EVAP, nrec_PRECIP,             &
+  nrec_SWREST, nrec_SSREST, nrec_RUNOFF, nrec_SHF, nrec_SFWF,                  &
+  nrec_TAUX, nrec_TAUY, nrec_WVEL, nrec_UEU, nrec_VNU, nrec_UEV, nrec_VNV,     &
+  nrec_WTU, nrec_WTV, nrec_UET, nrec_VNT, nrec_WTT, nrec_UES, nrec_VNS,        &
+  nrec_WTS, nrec_ADVT, nrec_ADVS, nrec_Q, nrec_PD, nrec_PD2, nrec_RHO2,        &
+  nrec_UW, nrec_VW, nrec_RHOU, nrec_RHOV, nrec_RHOW, nrec_URHO, nrec_VRHO,     &
+  nrec_WRHO, nrec_PDW, nrec_PDU, nrec_PDV, nrec_UPD, nrec_VPD, nrec_WPD,       &
+  nrec_UEU, nrec_UEV, nrec_VNU, nrec_VNV, nrec_WTU, nrec_WTV
 
 !===============================================================================
 !  read and create horizontal grid spacing, define TAREA
 !===============================================================================
 
-allocate(                                                                   &
-HTN(imt,jmt), HTE(imt,jmt), HUW(imt,jmt), HUS(imt,jmt), WORK(imt,jmt),      &
-WORK2(imt,jmt), WORK3(imt,jmt), DXT(imt,jmt), DYT(imt,jmt), TAREA(imt,jmt), &
-DXU(imt,jmt), DYU(imt,jmt), UAREA(imt,jmt) )
+allocate(                                                                      &
+  HTN(imt,jmt), HTE(imt,jmt), HUW(imt,jmt), HUS(imt,jmt), WORK(imt,jmt),       &
+  WORK2(imt,jmt), WORK3(imt,jmt), DXT(imt,jmt), DYT(imt,jmt), TAREA(imt,jmt),  &
+  DXU(imt,jmt), DYU(imt,jmt), UAREA(imt,jmt) )
+
 inquire (iolength = rec_length) HTN
-open (1,file=grid_file,access='direct',form='unformatted',recl=rec_length,  &
-        status='unknown')
-read (1,rec=3) HTN ! [cm]
-read (1,rec=4) HTE ! [cm]
-close(1)
+write   (*,*) 'HTN  rec_length', rec_length, imt,jmt
+open    (1,file=grid_file,access='direct',form='unformatted',recl=rec_length,  &
+           status='unknown')
+  read  (1,rec=3) HTN ! [cm]
+  read  (1,rec=4) HTE ! [cm]
+close   (1)
 
 ! Why do we do this?
 where (HTN <= c0) HTN = c1
@@ -196,25 +192,27 @@ allocate( DZT(imt,jmt,km), DZU(imt,jmt,km) )
 
 ! kmT
 inquire (iolength=rec_length) kmT
-open    (1,file=kmt_file,access='direct',form='unformatted',recl=rec_length,&
+write   (*,*) 'kmT  rec_length', rec_length, imt,jmt
+open    (1,file=kmt_file,access='direct',form='unformatted',recl=rec_length,   &
            status='unknown')
-read    (1,rec=1) kmT
+  read  (1,rec=1) kmT
 close   (1)
 !write   (*,*) 'kmT file: ', kmt_file
 
 ! dz
-open    (1,file=in_depths,status='old')
-do k = 1, km
-  read   (1,*) dz(k) ! [cm]
-enddo !k
-close   (1)
+open     (1,file=in_depths,status='old')
+  do k = 1, km
+    read (1,*) dz(k) ! [cm]
+  enddo  !k
+close    (1)
 !write   (*,*) 'dz(k) file: ', in_depths
 
 ! partial bottom cell depths
 inquire (iolength=rec_length) DZBC
-open    (1,file=pbc_file,access='direct',form='unformatted',recl=rec_length,&
+write   (*,*) 'DZBC rec_length', rec_length, imt,jmt
+open    (1,file=pbc_file,access='direct',form='unformatted',recl=rec_length,   &
            status='unknown')
-read    (1,rec=1) DZBC ! [cm]
+  read  (1,rec=1) DZBC ! [cm]
 close   (1)
 !write   (*,*) 'PBC file: ', pbc_file
 
@@ -228,7 +226,7 @@ do k=1,km
     DZT(:,:,k) = c0
   endwhere
 enddo !k
-deallocate( DZBC ) !kmT
+deallocate( DZBC )
   
 ! DZU field
 do k=1,km
@@ -265,45 +263,34 @@ enddo !k
 
 
 ! 3D
-allocate(                                                                   &
-UVEL_k(imt,jmt),  VVEL_k(imt,jmt),  RHO_k(imt,jmt),                         &
-UVEL(imt,jmt,km), VVEL(imt,jmt,km), RHO(imt,jmt,km),                        &
-Q_k(imt,jmt),     PD_k(imt,jmt),    SALT_k(imt,jmt),  TEMP_k(imt,jmt),      &  
-Q(imt,jmt,km),    PD(imt,jmt,km),   SALT(imt,jmt,km), TEMP(imt,jmt,km) )
+allocate(                                                                      &
+  UVEL(imt,jmt,km), VVEL(imt,jmt,km), RHO(imt,jmt,km),                         &
+  Q(imt,jmt,km),    PD(imt,jmt,km),   SALT(imt,jmt,km), TEMP(imt,jmt,km) )
 
 !open file
-inquire (iolength=rec_length) UVEL_k
-open (1,file=tavg_file,access='direct',form='unformatted',recl=rec_length,  &
+inquire (iolength=rec_length) kmT
+write (*,*) 'UVEL rec_length', rec_length, imt,jmt, imt*jmt
+open (1,file=tavg_file,access='direct',form='unformatted',recl=rec_length,     &
         status='unknown')
 
 !read 3-D fields
-do k = 1, km
-  read (1,rec=nrec_RHO+k-1)   RHO_k      ! [g/cm^3]
-  read (1,rec=nrec_PD+k-1)    PD_k       ! [g/cm^3]
-  read (1,rec=nrec_Q+k-1)     Q_k        ! [g/cm^4]
-  read (1,rec=nrec_UVEL+k-1)  UVEL_k     ! [cm/s]
-  read (1,rec=nrec_VVEL+k-1)  VVEL_k     ! [cm/s]
-  read (1,rec=nrec_SALT+k-1)  SALT_k     ! [g/kg]
-  read (1,rec=nrec_TEMP+k-1)  TEMP_k     ! [degC]
-  RHO(:,:,k)                = RHO_k
-  PD(:,:,k)                 = PD_k
-  Q(:,:,k)                  = Q_k
-  UVEL(:,:,k)               = UVEL_k
-  VVEL(:,:,k)               = VVEL_k
-  SALT(:,:,k)               = SALT_k
-  TEMP(:,:,k)               = TEMP_k
-enddo !k
+call load_3D_field(imt,jmt,km,1,nrec_RHO, RHO ) ! [g/cm^3]
+call load_3D_field(imt,jmt,km,1,nrec_PD,  PD  ) ! [g/cm^3]
+call load_3D_field(imt,jmt,km,1,nrec_Q,   Q   ) ! [g/cm^4]
+call load_3D_field(imt,jmt,km,1,nrec_UVEL,UVEL) ! [cm/s]
+call load_3D_field(imt,jmt,km,1,nrec_VVEL,VVEL) ! [cm/s]
+call load_3D_field(imt,jmt,km,1,nrec_SALT,SALT) ! [g/kg]
+call load_3D_field(imt,jmt,km,1,nrec_TEMP,TEMP) ! [degC]
 
-write (*,*) 'Q  ', Q(500,500,1)
-write (*,*) 'PD', PD(500,500,1)
-write (*,*) 'PD', PD(500,500,2)
-write (*,*) 'dPD/dz', (PD(500,500,1)-PD(500,500,2))/1000.0
-write (*,*) 'Q  ', Q(600,600,1)
-write (*,*) 'PD', PD(600,600,1)
-write (*,*) 'PD', PD(600,600,2)
-write (*,*) 'dPD/dz', (PD(600,600,1)-PD(600,600,2))/1000.0
-
-deallocate( UVEL_k, VVEL_k, RHO_k, Q_k, PD_k, SALT_k, TEMP_k )
+! to show how Q is calculated incorrectly at surface (and bottom)
+! write (*,*) 'Q  ', Q(500,500,1)
+! write (*,*) 'PD', PD(500,500,1)
+! write (*,*) 'PD', PD(500,500,2)
+! write (*,*) 'dPD/dz', (PD(500,500,1)-PD(500,500,2))/1000.0
+! write (*,*) 'Q  ', Q(600,600,1)
+! write (*,*) 'PD', PD(600,600,1)
+! write (*,*) 'PD', PD(600,600,2)
+! write (*,*) 'dPD/dz', (PD(600,600,1)-PD(600,600,2))/1000.0
 
 write (*,*) 'file: ', tavg_file
 
@@ -316,9 +303,9 @@ allocate( area(km), rho_ref(km), pd_ref(km), n0(km), n0_inv(km),            &
           pd_new_ref(km), n0_new(km) )
 
 volume  = sum(TAREA*sum(DZT,3))*1.0E-06 ! volume between bottom and z=0 [m^3]
-call vol_int(imt,jmt,km,RHO,TAREA,DZT,rho_avg)
+call vol_int(1,1,1,imt,jmt,km,RHO,TAREA,DZT,rho_avg)
 rho_avg = rho_avg/volume
-call vol_int(imt,jmt,km, PD,TAREA,DZT, pd_avg)
+call vol_int(1,1,1,imt,jmt,km, PD,TAREA,DZT, pd_avg)
 pd_avg  =  pd_avg/volume
 write (*,"(A10, ES13.4E2, A7)") 'rho_avg =', rho_avg, 'g/cm^3'
 write (*,"(A10, ES13.4E2, A7)") 'pd_avg  =',  pd_avg, 'g/cm^3'
@@ -443,17 +430,12 @@ write (*,*) ''
 write (*,*) '1. RESERVOIRS'
 
 !  all PE terms are on TTT-grid, all KE terms on TUU grid
-allocate( PD2_k(imt,jmt),  KE_k(imt,jmt), PD2(imt,jmt,km), KE(imt,jmt,km) )
+allocate( PD2(imt,jmt,km), KE(imt,jmt,km) )
+call load_3D_field(imt,jmt,km,1,nrec_PD2, PD2) ! [g^2/cm^6]
+call load_3D_field(imt,jmt,km,1,nrec_KE,  KE ) ! [cm^2/s^2]
 
-do k = 1, km
-  read (1,rec=nrec_PD2+k-1)      PD2_k      ! [g^2/cm^6]
-  read (1,rec=nrec_KE+k-1)   KE_k   ! [cm^2/s^2]
-  KE(:,:,k)                = KE_k
-  PD2(:,:,k)                   = PD2_k
-enddo !k
-
-allocate(                                                                   &
-rKm(imt,jmt,km), rKe(imt,jmt,km), rPm(imt,jmt,km), rPe(imt,jmt,km),         &
+allocate(                                                                      &
+rKm(imt,jmt,km), rKe(imt,jmt,km), rPm(imt,jmt,km), rPe(imt,jmt,km),            &
 rKm_sint(km),    rKe_sint(km),    rPm_sint(km),    rPe_sint(km) )
 
 do k = 1, km
@@ -464,28 +446,23 @@ do k = 1, km
 enddo !k
 
 ! interpolate KE terms onto TTT-grid
-allocate(                                                                   & 
-TTT_Km(imt,jmt,km), TTT_Ke(imt,jmt,km), rKm_k(imt,jmt), rKe_k(imt,jmt) )
+allocate( TTT_rKm(imt,jmt,km), TTT_rKe(imt,jmt,km) )
 
-do k = 1, km
-  call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,rKm(:,:,k),rKm_k)
-  call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,rKe(:,:,k),rKe_k)
-  TTT_Km(:,:,k) = rKm_k
-  TTT_Ke(:,:,k) = rKe_k
-enddo !k
+call uu2tt_scalar_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,rKm,TTT_rKm)
+call uu2tt_scalar_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,rKe,TTT_rKe)
 
 ! integrate
-call vol_int(imt,jmt,km,    rPm,TAREA,DZT,rPm_int)
-call vol_int(imt,jmt,km,    rPe,TAREA,DZT,rPe_int)
-call vol_int(imt,jmt,km,TTT_Km,TAREA,DZT,rKm_int)
-call vol_int(imt,jmt,km,TTT_Ke,TAREA,DZT,rKe_int)
+call vol_int(1,1,1,imt,jmt,km,    rPm,TAREA,DZT,rPm_int)
+call vol_int(1,1,1,imt,jmt,km,    rPe,TAREA,DZT,rPe_int)
+call vol_int(1,1,1,imt,jmt,km,TTT_rKm,TAREA,DZT,rKm_int)
+call vol_int(1,1,1,imt,jmt,km,TTT_rKe,TAREA,DZT,rKe_int)
 
 ! surface integrals
 do k = 1,km
-  call surf_int(imt,jmt,    rPm(:,:,k),TAREA,DZT(:,:,k),rPm_sint(k))
-  call surf_int(imt,jmt,    rPe(:,:,k),TAREA,DZT(:,:,k),rPe_sint(k))
-  call surf_int(imt,jmt,TTT_Km(:,:,k),TAREA,DZT(:,:,k),rKm_sint(k))
-  call surf_int(imt,jmt,TTT_Ke(:,:,k),TAREA,DZT(:,:,k),rKe_sint(k))
+  call surf_int(1,1,imt,jmt,    rPm(:,:,k),TAREA,DZT(:,:,k),rPm_sint(k))
+  call surf_int(1,1,imt,jmt,    rPe(:,:,k),TAREA,DZT(:,:,k),rPe_sint(k))
+  call surf_int(1,1,imt,jmt,TTT_rKm(:,:,k),TAREA,DZT(:,:,k),rKm_sint(k))
+  call surf_int(1,1,imt,jmt,TTT_rKe(:,:,k),TAREA,DZT(:,:,k),rKe_sint(k))
 enddo !k
 
 ! output
@@ -507,8 +484,7 @@ do i = 1,4
 enddo !i
 
 ! rKm not deallocated
-deallocate( rKm,  rKm_k, rKe, rKe_k, rPm, rPe,               &
-            PD2_k, KE_k, PD2, KE, TTT_Km, TTT_Ke)
+deallocate( rKm, rKe, rPm, rPe, PD2, KE, TTT_rKm, TTT_rKe)
 
 !===============================================================================
 !  2. GENERATION
@@ -518,10 +494,10 @@ write (*,*) ''
 write (*,*) '2. GENERATION'
 
 ! 2D
-allocate(                                                                   &
-ALPHA01(imt,jmt), SHF(imt,jmt), BETA01(imt,jmt), SFWF(imt,jmt),             &
-STFRHO(imt,jmt), SSFRHO(imt,jmt), TAUX(imt,jmt), TAUY(imt,jmt),             &
-UTAUX(imt,jmt), VTAUY(imt,jmt) )
+allocate(                                                                      &
+  ALPHA01(imt,jmt), SHF(imt,jmt), BETA01(imt,jmt), SFWF(imt,jmt),              &
+  STFRHO(imt,jmt), SSFRHO(imt,jmt), TAUX(imt,jmt), TAUY(imt,jmt),              &
+  UTAUX(imt,jmt), VTAUY(imt,jmt) )
 
 !read 2-D fields first
 read (1,rec=nrec_ALPHA01)     ALPHA01   ! [g/cm^3/K]
@@ -539,24 +515,24 @@ read (1,rec=nrec_VTAUY)       VTAUY     ! [g/^3]
 !  all PE terms quantities are on TT-grid, all KE terms on UU-grid
 !
 
-allocate(                                                                   &
-gPmh(imt,jmt), gPms(imt,jmt), gPm(imt,jmt), gPeh(imt,jmt),                  &
-gPes(imt,jmt), gPe(imt,jmt),  gKm(imt,jmt), gKe(imt,jmt),                   &
-TT_gKm(imt,jmt), TT_gKe(imt,jmt),                                           &
-gPt(imt,jmt), gKt(imt,jmt), TT_gKt(imt,jmt) )
+allocate(                                                                      &
+  gPmh(imt,jmt), gPms(imt,jmt), gPm(imt,jmt), gPeh(imt,jmt),                   &
+  gPes(imt,jmt), gPe(imt,jmt),  gKm(imt,jmt), gKe(imt,jmt),                    &
+  TT_gKm(imt,jmt), TT_gKe(imt,jmt),                                            &
+  gPt(imt,jmt), gKt(imt,jmt), TT_gKt(imt,jmt) )
 
 !
 !  2.1/2.2 Mean/Eddy Potential Energy Generation
 !
 
-gPmh = -g*ALPHA01*1.0E03*n0_inv(1) *                                        &
+gPmh = -g*ALPHA01*1.0E03*n0_inv(1) *                                           &
         SHF /c/rho0 * ( PD(:,:,1)*1.0E03 - pd_ref(1) )  ! []
-gPeh = -g*ALPHA01*1.0E03*n0_inv(1) *                                        &
+gPeh = -g*ALPHA01*1.0E03*n0_inv(1) *                                           &
        ( STFRHO*1.0E01 - SHF /c/rho0 * pd_ref(1) ) - gPmh
 
-gPms = -g* BETA01*1.0E03*n0_inv(1) *                                        &
+gPms = -g* BETA01*1.0E03*n0_inv(1) *                                           &
         SFWF *salinity_factor*1.0E-02 * ( PD(:,:,1)*1.0E03 - pd_ref(1) )
-gPes = -g* BETA01*1.0E03*n0_inv(1) *                                        &
+gPes = -g* BETA01*1.0E03*n0_inv(1) *                                           &
         ( SSFRHO*1.0E01 - SFWF *salinity_factor*1.0E-02 * pd_ref(1) ) - gPms
 
 gPm  = gPmh + gPms
@@ -572,14 +548,14 @@ gKe  = ( UTAUX + VTAUY )*1.0E-03 - gKm
 call uu2tt_scalar(imt,jmt,k,DZT(:,:,1),DZU(:,:,1),TAREA,UAREA,gKm,TT_gKm)
 call uu2tt_scalar(imt,jmt,k,DZT(:,:,1),DZU(:,:,1),TAREA,UAREA,gKe,TT_gKe)
 
-call surf_int(imt,jmt,  gPmh,TAREA,DZT(:,:,1),gPmh_int)
-call surf_int(imt,jmt,  gPms,TAREA,DZT(:,:,1),gPms_int)
-call surf_int(imt,jmt,   gPm,TAREA,DZT(:,:,1), gPm_int)
-call surf_int(imt,jmt,  gPeh,TAREA,DZT(:,:,1),gPeh_int)
-call surf_int(imt,jmt,  gPes,TAREA,DZT(:,:,1),gPes_int)
-call surf_int(imt,jmt,   gPe,TAREA,DZT(:,:,1), gPe_int)
-call surf_int(imt,jmt,TT_gKm,TAREA,DZT(:,:,1), gKm_int)
-call surf_int(imt,jmt,TT_gKe,TAREA,DZT(:,:,1), gKe_int)
+call surf_int(1,1,imt,jmt,  gPmh,TAREA,DZT(:,:,1),gPmh_int)
+call surf_int(1,1,imt,jmt,  gPms,TAREA,DZT(:,:,1),gPms_int)
+call surf_int(1,1,imt,jmt,   gPm,TAREA,DZT(:,:,1), gPm_int)
+call surf_int(1,1,imt,jmt,  gPeh,TAREA,DZT(:,:,1),gPeh_int)
+call surf_int(1,1,imt,jmt,  gPes,TAREA,DZT(:,:,1),gPes_int)
+call surf_int(1,1,imt,jmt,   gPe,TAREA,DZT(:,:,1), gPe_int)
+call surf_int(1,1,imt,jmt,TT_gKm,TAREA,DZT(:,:,1), gKm_int)
+call surf_int(1,1,imt,jmt,TT_gKe,TAREA,DZT(:,:,1), gKe_int)
 
 write (3,rec=169)    gPm(:,:) 
 write (3,rec=170)    gPe(:,:) 
@@ -591,9 +567,8 @@ write (3,rec=175)   gPeh(:,:)
 write (3,rec=176)   gPes(:,:) 
 
 
-deallocate( gPmh, gPms, gPm, gPeh, gPes, gPe, gKm, gKe, TT_gKm, TT_gKe,     &
-ALPHA01, SHF, BETA01, SFWF, STFRHO, SSFRHO, TAUX, TAUY, UTAUX, VTAUY,       &
-gPt, gKt, TT_gKt )
+deallocate( gPmh, gPms, gPm, gPeh, gPes, gPe, gKm, gKe, TT_gKm, TT_gKe, TT_gKt,&
+ALPHA01, SHF, BETA01, SFWF, STFRHO, SSFRHO, TAUX, TAUY, UTAUX, VTAUY, gPt, gKt )
 
 write (*,300) '|gPmh   =', gPmh_int, 'W', gPmh_int/2.00E12
 write (*,300) '|gPms   =', gPms_int, 'W', gPms_int/2.00E12
@@ -618,33 +593,28 @@ write (*,*) '3. CONVERSION'
 !  ## Product Formulation ##
 !  #############################################################################
 
-allocate(                                                                   &
-UVEL2_k(imt,jmt),  VVEL2_k(imt,jmt),  UV_k(imt,jmt),                        &
-VW_k(imt,jmt),     UW_k(imt,jmt),     WVEL_k(imt,jmt),                      &
-PDU_k(imt,jmt),    PDV_k(imt,jmt),                                          &
-UVEL2(imt,jmt,km), VVEL2(imt,jmt,km), UV(imt,jmt,km),                       &
-VW(imt,jmt,km),    UW(imt,jmt,km) ,   WVEL(imt,jmt,km),                     &
-PDU(imt,jmt,km),   PDV(imt,jmt,km) )
+allocate(                                                                      &
+  UVEL2(imt,jmt,km), VVEL2(imt,jmt,km), UV(imt,jmt,km),                        &
+  VW(imt,jmt,km),    UW(imt,jmt,km) ,   WVEL(imt,jmt,km),                      &
+  PDU(imt,jmt,km),   PDV(imt,jmt,km) )
 
-do k = 1, km
-  read (1,rec=nrec_WVEL+k-1)  WVEL_k     ! [cm/s]
-  read (1,rec=nrec_UVEL2+k-1) UVEL2_k    ! [cm^2/s^2]
-  read (1,rec=nrec_VVEL2+k-1) VVEL2_k    ! [cm^2/s^2]
-  read (1,rec=nrec_UV+k-1)    UV_k       ! [cm^2/s^2]
-  read (1,rec=nrec_UW+k-1)    UW_k       ! [cm^2/s^2]
-  read (1,rec=nrec_VW+k-1)    VW_k       ! [cm^2/s^2]
-  read (1,rec=nrec_PDU+k-1)   PDU_k      ! [g/cm^2/s]
-  read (1,rec=nrec_PDV+k-1)   PDV_k      ! [g/cm^2/s]
-  WVEL(:,:,k)               = WVEL_k
-  UVEL2(:,:,k)              = UVEL2_k
-  VVEL2(:,:,k)              = VVEL2_k
-  UV(:,:,k)                 = UV_k
-  UW(:,:,k)                 = UW_k
-  VW(:,:,k)                 = VW_k
-  PDU(:,:,k)                = PDU_k
-  PDV(:,:,k)                = PDV_k
-enddo
-deallocate( UVEL2_k, VVEL2_k, UV_k, VW_k, UW_k, WVEL_k, PDU_k, PDV_k )
+call load_3D_field(imt,jmt,km,1,nrec_WVEL, WVEL ) ! [cm/s]
+call load_3D_field(imt,jmt,km,1,nrec_UVEL2,UVEL2) ! [cm^2/s^2]
+call load_3D_field(imt,jmt,km,1,nrec_VVEL2,VVEL2) ! [cm^2/s^2]
+call load_3D_field(imt,jmt,km,1,nrec_UV,   UV   ) ! [cm^2/s^2]
+call load_3D_field(imt,jmt,km,1,nrec_UW,   UW   ) ! [cm^2/s^2]
+call load_3D_field(imt,jmt,km,1,nrec_VW,   VW   ) ! [cm^2/s^2]
+call load_3D_field(imt,jmt,km,1,nrec_PDU,  PDU  ) ! [g/cm^2/s]
+call load_3D_field(imt,jmt,km,1,nrec_PDV,  PDV  ) ! [g/cm^2/s]
+
+! calculate non-zonality parameter
+! VVEL/UVEL integrated over [0E,40E]x[90S,45S]=[1100,1500]x[0,676]
+
+
+call vol_int(1,1100,1,676,1500,17,VVEL2/UVEL2,UAREA,DZU,V2U2    )
+call vol_int(1,1100,1,676,1500,17,DZU/DZU    ,UAREA,DZU,V2U2_vol)
+V2U2 = V2U2/V2U2_vol
+write (*,*) 'V2U2:', V2U2
 !
 !  first create new fields:
 !  3.1: (tuu->ttt) uvel,vvel;  (quadratic? central difference) drho/dx, drho/dy,
@@ -662,7 +632,7 @@ deallocate( UVEL2_k, VVEL2_k, UV_k, VW_k, UW_k, WVEL_k, PDU_k, PDV_k )
 !  TEST vertical velocities
 !  write (*,*) 'surface integrals of vertical velocities'
 !  do k = 1,km
-!   call surf_int(imt,jmt,WVEL(:,:,k),TAREA,DZT(:,:,k),WVEL_int)
+!   call surf_int(1,1,imt,jmt,WVEL(:,:,k),TAREA,DZT(:,:,k),WVEL_int)
 !   write (*,*) k, 'WVEL_int =', WVEL_int/area(k)/1.0E02, 'm/s'
 !  enddo
 
@@ -671,23 +641,14 @@ deallocate( UVEL2_k, VVEL2_k, UV_k, VW_k, UW_k, WVEL_k, PDU_k, PDV_k )
 ! > TUU->TTT: TTT_UVEL, TTT_VVEL, TTT_UVEL2, TTT_VVEL2, TTT_UV
 !
 
-allocate(                                                                   &
-TTT_UVEL(imt,jmt,km), TTT_VVEL(imt,jmt,km), TTT_UVEL2(imt,jmt,km),          &
-TTT_VVEL2(imt,jmt,km), TTT_UV(imt,jmt,km), UVEL_k(imt,jmt),                 &
-VVEL_k(imt,jmt), UVEL2_k(imt,jmt), VVEL2_k(imt,jmt), UV_k(imt,jmt) )
-do k = 1, km
-call uu2tt(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,UVEL(:,:,k) ,UVEL_k )
-call uu2tt(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,VVEL(:,:,k) ,VVEL_k )
-call uu2tt(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,UVEL2(:,:,k),UVEL2_k)
-call uu2tt(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,VVEL2(:,:,k),VVEL2_k)
-call uu2tt(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,UV(:,:,k)   ,UV_k   )
-TTT_UVEL(:,:,k)  = UVEL_k
-TTT_VVEL(:,:,k)  = VVEL_k
-TTT_UVEL2(:,:,k) = UVEL2_k
-TTT_VVEL2(:,:,k) = VVEL2_k
-TTT_UV(:,:,k)    = UV_k
-enddo
-deallocate( UVEL_k, VVEL_k, UVEL2_k, VVEL2_k, UV_k )
+allocate(                                                                      &
+  TTT_UVEL(imt,jmt,km), TTT_VVEL(imt,jmt,km), TTT_UVEL2(imt,jmt,km),           &
+  TTT_VVEL2(imt,jmt,km), TTT_UV(imt,jmt,km) )
+call uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,UVEL ,TTT_UVEL )
+call uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,VVEL ,TTT_VVEL )
+call uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,UVEL2,TTT_UVEL2)
+call uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,VVEL2,TTT_VVEL2)
+call uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,UV   ,TTT_UV   )
 deallocate( UVEL2, VVEL2, UV )
 
 !
@@ -709,11 +670,11 @@ deallocate( UW, VW )
 ! > DUDX, DUDY, DUDZ, DVDX, DVDY, DVDZ
 !
 
-allocate( DUDX(imt,jmt,km), DUDY(imt,jmt,km), DUDZ(imt,jmt,km),             &
+allocate( DUDX(imt,jmt,km), DUDY(imt,jmt,km), DUDZ(imt,jmt,km),                &
           DVDX(imt,jmt,km), DVDY(imt,jmt,km), DVDZ(imt,jmt,km) )
-call nabla_hvel(imt,jmt,km,UVEL,TTT_UVEL,dz,DXT,DYT,DXU,DYU,DZT,DZU,TAREA,  &
+call nabla_hvel(imt,jmt,km,UVEL,TTT_UVEL,dz,DXT,DYT,DXU,DYU,DZT,DZU,TAREA,     &
                 DUDX,DUDY,DUDZ)
-call nabla_hvel(imt,jmt,km,VVEL,TTT_VVEL,dz,DXT,DYT,DXU,DYU,DZT,DZU,TAREA,  &
+call nabla_hvel(imt,jmt,km,VVEL,TTT_VVEL,dz,DXT,DYT,DXU,DYU,DZT,DZU,TAREA,     &
                 DVDX,DVDY,DVDZ)
 !
 ! > DRHODX, DRHODY
@@ -724,27 +685,28 @@ call grad_rho(imt,jmt,km,kmT,DZT,DZU,DXU,DYU,TAREA,UAREA,PD,DPDDX,DPDDY)
 
 !===============================================================================
 
-allocate(                                                                   &
-cPem(imt,jmt,km), cKem(imt,jmt,km), cPKm(imt,jmt,km), cPKe(imt,jmt,km),     &
-cPem_sint(km),    cKem_sint(km),    cPKm_sint(km),    cPKe_sint(km) )
+allocate(                                                                      &
+  cPem(imt,jmt,km), cKem(imt,jmt,km), cPKm(imt,jmt,km), cPKe(imt,jmt,km),      &
+  cPem_sint(km),    cKem_sint(km),    cPKm_sint(km),    cPKe_sint(km) )
 
 !
 !  3.1/3.2 Eddy to Mean Energy
 !
 
+
 do k = 1, km
-  cPem(:,:,k) = -g*n0_inv(k)*1.0E06 *                                      &
-                ((PDU(:,:,k)-PD(:,:,k)*TTT_UVEL(:,:,k))*DPDDX(:,:,k)       &
-                +(PDV(:,:,k)-PD(:,:,k)*TTT_VVEL(:,:,k))*DPDDY(:,:,k))
-  cKem(:,:,k) = rho0*1.0E-04 *                                             &
-                ((TTT_UVEL2(:,:,k) - TTT_UVEL(:,:,k)**2)*DUDX(:,:,k)       &
-                +(TTT_VVEL2(:,:,k) - TTT_VVEL(:,:,k)**2)*DVDY(:,:,k)       &
-                +(TTT_UV(:,:,k)    - TTT_UVEL(:,:,k)*TTT_VVEL(:,:,k))      &
-                *                               (DUDY(:,:,k)+DVDX(:,:,k))  &
-                +(TTT_UW(:,:,k)    - TTT_UVEL(:,:,k)*TTT_WVEL(:,:,k))      &
-                *                                             DUDZ(:,:,k)  &
-                +(TTT_VW(:,:,k)    - TTT_VVEL(:,:,k)*TTT_WVEL(:,:,k))      &
-                *                                             DVDZ(:,:,k) )
+  cPem(:,:,k) = - g * n0_inv(k) * 1.0E06                                       &
+              * ( ( PDU(:,:,k) - PD(:,:,k) * TTT_UVEL(:,:,k)) * DPDDX(:,:,k)   &
+              +   ( PDV(:,:,k) - PD(:,:,k) * TTT_VVEL(:,:,k)) * DPDDY(:,:,k) )
+  cKem(:,:,k) = rho0 * 1.0E-04                                                 &
+              * ( ( TTT_UVEL2(:,:,k) - TTT_UVEL(:,:,k)**2 ) * DUDX(:,:,k)      &
+              +   ( TTT_VVEL2(:,:,k) - TTT_VVEL(:,:,k)**2 ) * DVDY(:,:,k)      &
+              +   ( TTT_UV(:,:,k)    - TTT_UVEL(:,:,k) * TTT_VVEL(:,:,k) )     &
+              *                              ( DUDY(:,:,k) + DVDX(:,:,k) )     &
+              +   ( TTT_UW(:,:,k)    - TTT_UVEL(:,:,k) * TTT_WVEL(:,:,k) )     &
+              *                                              DUDZ(:,:,k)       &
+              +   ( TTT_VW(:,:,k)    - TTT_VVEL(:,:,k) * TTT_WVEL(:,:,k) )     &
+              *                                              DVDZ(:,:,k)   )
 enddo !k
 
 deallocate( PDU, PDV, TTT_UVEL2, TTT_VVEL2, TTT_UV, TTT_UW, TTT_VW )
@@ -753,13 +715,9 @@ deallocate( PDU, PDV, TTT_UVEL2, TTT_VVEL2, TTT_UV, TTT_UW, TTT_VW )
 !  3.3/3.4 Potential to Kinetic Energy
 !
 
-allocate( PDW(imt,jmt,km), PDW_k(imt,jmt), TTT_PDW(imt,jmt,km) )
+allocate( PDW(imt,jmt,km), TTT_PDW(imt,jmt,km) )
 
-do k = 1, km
-  read (1,rec=nrec_PDW+k-1)   PDW_k      ! [g/cm^2/s]
-  PDW(:,:,k)                = PDW_k
-enddo !k
-
+call load_3D_field(imt,jmt,km,1,nrec_PDW,PDW)
 call wtt2ttt(imt,jmt,km, PDW,DZT, TTT_PDW)
 
 do k = 1, km
@@ -767,33 +725,34 @@ do k = 1, km
   cPKe(:,:,k) = -g * TTT_PDW(:,:,k)*1.0E01 - cPKm(:,:,k)
 enddo !k
 
-deallocate( PDW, PDW_k, TTT_PDW, TTT_WVEL )
+deallocate( PDW, TTT_PDW, TTT_WVEL )
 
 !
 !  volume integrals
 !
 
-call vol_int(imt,jmt,km,   cPem,TAREA,DZT,   cPem_int)
-call vol_int(imt,jmt,km,   cKem,TAREA,DZT,   cKem_int)
-call vol_int(imt,jmt,km,   cPKm,TAREA,DZT,   cPKm_int)
-call vol_int(imt,jmt,km,   cPKe,TAREA,DZT,   cPKe_int)
+call vol_int(1,1,1,imt,jmt,km,   cPem,TAREA,DZT,   cPem_int)
+call vol_int(1,1,1,imt,jmt,km,   cKem,TAREA,DZT,   cKem_int)
+call vol_int(1,1,1,imt,jmt,km,   cPKm,TAREA,DZT,   cPKm_int)
+call vol_int(1,1,1,imt,jmt,km,   cPKe,TAREA,DZT,   cPKe_int)
 !
 !  surface integrals
 !
 
 do k = 1,km
-  call surf_int(imt,jmt,cPem(:,:,k),TAREA,DZT(:,:,k),cPem_sint(k))
-  call surf_int(imt,jmt,cKem(:,:,k),TAREA,DZT(:,:,k),cKem_sint(k))
-  call surf_int(imt,jmt,cPKm(:,:,k),TAREA,DZT(:,:,k),cPKm_sint(k))
-  call surf_int(imt,jmt,cPKe(:,:,k),TAREA,DZT(:,:,k),cPKe_sint(k))
+  call surf_int(1,1,imt,jmt,cPem(:,:,k),TAREA,DZT(:,:,k),cPem_sint(k))
+  call surf_int(1,1,imt,jmt,cKem(:,:,k),TAREA,DZT(:,:,k),cKem_sint(k))
+  call surf_int(1,1,imt,jmt,cPKm(:,:,k),TAREA,DZT(:,:,k),cPKm_sint(k))
+  call surf_int(1,1,imt,jmt,cPKe(:,:,k),TAREA,DZT(:,:,k),cPKe_sint(k))
 enddo !k
 
-do i = 1,4
+do i = 1,5
   do k = 1,km
     if ( i==1 ) write (3,rec=176+(i-1)*km+k) cPem(:,:,k) 
     if ( i==2 ) write (3,rec=176+(i-1)*km+k) cKem(:,:,k) 
     if ( i==3 ) write (3,rec=176+(i-1)*km+k) cPKm(:,:,k) 
     if ( i==4 ) write (3,rec=176+(i-1)*km+k) cPKe(:,:,k) 
+    if ( i==5 ) write (3,rec=176+(i-1)*km+k) TEMP(:,:,k) 
   enddo !k
 enddo !i
 
@@ -807,330 +766,332 @@ write (*,300) 'cPKe    =',    cPKe_int, 'W',    cPKe_int/ 7.3E11
 write (*,*) ''
 write (*,*) '4. DISSIPATION'
 
-dPm    = gPm_int + cPem_int - cPKm_int
-dPe    = gPe_int - cPem_int - cPKe_int
-dKm    = gKm_int + cKem_int + cPKm_int
-dKe    = gKe_int - cKem_int + cPKe_int
+dPm = gPm_int + cPem_int - cPKm_int
+dPe = gPe_int - cPem_int - cPKe_int
+dKm = gKm_int + cKem_int + cPKm_int
+dKe = gKe_int - cKem_int + cPKe_int
 
 write (*,300) 'dPm     =', dPm   , 'W',    dPm/1.66E12
 write (*,300) 'dPe     =', dPe   , 'W',    dPe/6.80E11
 write (*,300) 'dKm     =', dKm   , 'W',    dKm/1.36E12
 write (*,300) 'dKe     =', dKe   , 'W',    dKe/3.03E12
 
-100 FORMAT (20(A,","),A)
-101 FORMAT (20(E15.7,","),E15.7)
+100 FORMAT (21(A,","),A)
+101 FORMAT (21(E15.7,","),E15.7)
 open  (2,file=('output/total_LEC_'//year)//'.out',form='formatted')
-write (2,100) 'pd_avg',                                                     &
-              'rPm','rPe','rKm','rKe',                                          &
-              'gPmh','gPms','gPm',                                          &
-              'gPeh','gPes','gPe',                                          &
-              'gKm','gKe',                                                  &
-              'cPem','cKem','cPKm','cPKe',                                  &
-              'dPm','dPe','dKm','dKe'
-write (2,101) pd_avg,                                                       &
-              rPm_int,     rPe_int,     rKm_int,     rKe_int,               &
-              gPmh_int,    gPms_int,    gPm_int,                            &
-              gPeh_int,    gPes_int,    gPe_int,                            &
-              gKm_int,     gKe_int,                                         &
-              cPem_int,    cKem_int,    cPKm_int,    cPKe_int,              &
-              dPm,          dPe,        dKm,         dKe
+write (2,100) 'pd_avg',                                                        &
+              'rPm','rPe','rKm','rKe',                                         &
+              'gPmh','gPms','gPm',                                             &
+              'gPeh','gPes','gPe',                                             &
+              'gKm','gKe',                                                     &
+              'cPem','cKem','cPKm','cPKe',                                     &
+              'dPm','dPe','dKm','dKe',                                         &
+              'V2U2'
+write (2,101) pd_avg,                                                          &
+              rPm_int,     rPe_int,     rKm_int,     rKe_int,                  &
+              gPmh_int,    gPms_int,    gPm_int,                               &
+              gPeh_int,    gPes_int,    gPe_int,                               &
+              gKm_int,     gKe_int,                                            &
+              cPem_int,    cKem_int,    cPKm_int,    cPKe_int,                 &
+              dPm,         dPe,         dKm,         dKe,                      &
+              V2U2
 close (2)
 
 ! ##############################################################################
 ! ## Flux Formulation ##
 ! ##############################################################################
 
-allocate(                                                                   &
-WUU_WVEL(imt,jmt,km),                                                       &
-WTU_k(imt,jmt),           WTV_k(imt,jmt),                                   &
-WUU_WTU_eddy_k(imt,jmt),  WUU_WTV_eddy_k(imt,jmt),                          &
-WTT_WTU_eddy_k(imt,jmt),  WTT_WTV_eddy_k(imt,jmt),                          &
-WTT_WTU_eddy(imt,jmt,km), WTT_WTV_eddy(imt,jmt,km),                         &
-TTT_WTU_eddy(imt,jmt,km), TTT_WTV_eddy(imt,jmt,km) )
-
-do k = 1, km
-  read (1,rec=nrec_WTU+k-1) WTU_k    ! [cm/s^2]
-  read (1,rec=nrec_WTV+k-1) WTV_k    ! [cm/s^2]
-
-  do j = 2,jmt
-    WUU_WVEL(1,j,k) = p25 * ( WVEL(1  ,j  ,k) * TAREA(1  ,j  )                &
-                            + WVEL(1  ,j-1,k) * TAREA(1  ,j-1)                &
-                            + WVEL(imt,j  ,k) * TAREA(imt,j  )                &
-                            + WVEL(imt,j-1,k) * TAREA(imt,j-1))               &
-                          / UAREA(1,j)
-    do i = 2,imt
-      if ( j.eq.2 ) then
-        WUU_WVEL(i,1,k) = p25 * ( WVEL(i  ,1  ,k) * TAREA(i  ,1  )            &
-                                + WVEL(i-1,1  ,k) * TAREA(i-1,1  ))           &
-                              / UAREA(i,1)
-      endif
-    WUU_WVEL(i,j,k) = p25 * ( WVEL(i  ,j  ,k) * TAREA(i  ,j  )               &
-                            + WVEL(i  ,j-1,k) * TAREA(i  ,j-1)               &
-                            + WVEL(i-1,j  ,k) * TAREA(i-1,j  )               &
-                            + WVEL(i-1,j-1,k) * TAREA(i-1,j-1))              &
-                          / UAREA(i,j)
-    enddo !i
-  enddo !j
-
-  do j = 1,jmt
-    do i = 1,imt
-      if ( DZU(i,j,k).ne.c0 ) then
-        if ( k.eq.1 ) then
-          WUU_WTU_eddy_k(i,j) = WTU_k(i,j) - WUU_WVEL(i,j,k)*UVEL(i,j,k)/DZU(i,j,k)
-          WUU_WTV_eddy_k(i,j) = WTV_k(i,j) - WUU_WVEL(i,j,k)*VVEL(i,j,k)/DZU(i,j,k)
-        else
-          WUU_WTU_eddy_k(i,j) = WTU_k(i,j) - p5 * WUU_WVEL(i,j,k)                &
-                                    * (UVEL(i,j,k) + UVEL(i,j,k-1))/DZU(i,j,k)
-          WUU_WTV_eddy_k(i,j) = WTV_k(i,j) - p5 * WUU_WVEL(i,j,k)                &
-                                      * (VVEL(i,j,k) + VVEL(i,j,k-1))/DZU(i,j,k)
-        endif
-      endif
-    enddo !j
-  enddo !i
-
-  call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,             &
-                      WUU_WTU_eddy_k(:,:),WTT_WTU_eddy_k)
-  call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,             &
-                      WUU_WTV_eddy_k(:,:),WTT_WTV_eddy_k)
-    
-  WTT_WTU_eddy(:,:,k) =  WTT_WTU_eddy_k(:,:)
-  WTT_WTV_eddy(:,:,k) =  WTT_WTV_eddy_k(:,:)
-
-enddo !k
-
-   
-write (*,*) 'after first k loop'
-
-call wtt2ttt(imt,jmt,km,WTT_WTU_eddy,DZT,TTT_WTU_eddy)
-call wtt2ttt(imt,jmt,km,WTT_WTV_eddy,DZT,TTT_WTV_eddy)
-
-allocate(                                                                   &
-UUE_k(imt,jmt), VUN_k(imt,jmt),                                             &
-UEU_k(imt,jmt), UEV_k(imt,jmt),                                             &
-VNU_k(imt,jmt), VNV_k(imt,jmt),                                             &
-UTE_k(imt,jmt), VTN_k(imt,jmt),                                             &
-UPD_k(imt,jmt), VPD_k(imt,jmt),                                             &
-TTT_UEU_k(imt,jmt), TTT_UEV_k(imt,jmt),                                     &
-TTT_VNU_k(imt,jmt), TTT_VNV_k(imt,jmt),                                     &
-TTT_UPD_k(imt,jmt), TTT_VPD_k(imt,jmt),                                     &
-UEU_eddy_k(imt,jmt), UEV_eddy_k(imt,jmt),                                   &
-VNU_eddy_k(imt,jmt), VNV_eddy_k(imt,jmt),                                   & 
-UPD_eddy_k(imt,jmt), VPD_eddy_k(imt,jmt),                                   & 
-TTT_UEU_eddy_k(imt,jmt), TTT_UEV_eddy_k(imt,jmt),                           &
-TTT_VNU_eddy_k(imt,jmt), TTT_VNV_eddy_k(imt,jmt),                           & 
-TTT_UPD_eddy_k(imt,jmt), TTT_VPD_eddy_k(imt,jmt) )
-
-write (*,*) 'just before k loop'
-do k = 1, km
-  read (1,rec=nrec_UEU+k-1) UEU_k    ! [cm/s^2]
-  read (1,rec=nrec_VNU+k-1) VNU_k    ! [cm/s^2]
-  read (1,rec=nrec_UEV+k-1) UEV_k    ! [cm/s^2]
-  read (1,rec=nrec_VNV+k-1) VNV_k    ! [cm/s^2]
-
-
-  ! interpolate to TT-grid
-  !call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,WTU_k(:,:),TTT_WTU_k)
-  !call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,WTV_k(:,:),TTT_WTV_k)
-
-  !call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,UEU_k,VNU_k,TTT_UEU_k,TTT_VNU_k)
-  !call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,UEV_k,VNV_k,TTT_UEV_k,TTT_VNV_k)
-
- ! edge cases!
-  do j = 2,jmt-1
-    UUE_k(1  ,j) = p25 *(UVEL(2  ,j  ,k)*DYU(2  ,j  )*DZU(2  ,j  ,k) + &
-                         UVEL(1  ,j  ,k)*DYU(1  ,j  )*DZU(1  ,j  ,k))+ &
-                   p125*(UVEL(2  ,j-1,k)*DYU(2  ,j-1)*DZU(2  ,j-1,k) + &
-                         UVEL(1  ,j-1,k)*DYU(1  ,j-1)*DZU(1  ,j-1,k) + &
-                         UVEL(2  ,j+1,k)*DYU(2  ,j+1)*DZU(2  ,j+1,k) + &
-                         UVEL(1  ,j+1,k)*DYU(1  ,j+1)*DZU(1  ,j+1,k))
-    VUN_k(1  ,j) = p25 *(VVEL(1  ,j+1,k)*DXU(1  ,j+1)*DZU(1  ,j+1,k) + &
-                         VVEL(1  ,j  ,k)*DXU(1  ,j  )*DZU(1  ,j  ,k))+ &
-                   p125*(VVEL(imt,j+1,k)*DXU(imt,j+1)*DZU(imt,j+1,k) + &
-                         VVEL(imt,j  ,k)*DXU(imt,j  )*DZU(imt,j  ,k) + &
-                         VVEL(2  ,j+1,k)*DXU(2  ,j+1)*DZU(2  ,j+1,k) + &
-                         VVEL(2  ,j  ,k)*DXU(2  ,j  )*DZU(2  ,j  ,k))
-
-    UUE_k(imt,j) = p25 *(UVEL(1    ,j  ,k)*DYU(1    ,j  )*DZU(1    ,j  ,k) + &
-                         UVEL(imt  ,j  ,k)*DYU(imt  ,j  )*DZU(imt  ,j  ,k))+ &
-                   p125*(UVEL(1    ,j-1,k)*DYU(1    ,j-1)*DZU(1    ,j-1,k) + &
-                         UVEL(imt  ,j-1,k)*DYU(imt  ,j-1)*DZU(imt  ,j-1,k) + &
-                         UVEL(1    ,j+1,k)*DYU(1    ,j+1)*DZU(1    ,j+1,k) + &
-                         UVEL(imt  ,j+1,k)*DYU(imt  ,j+1)*DZU(imt  ,j+1,k))
-    VUN_k(imt,j) = p25 *(VVEL(imt  ,j+1,k)*DXU(imt  ,j+1)*DZU(imt  ,j+1,k) + &
-                         VVEL(imt  ,j  ,k)*DXU(imt  ,j  )*DZU(imt  ,j  ,k))+ &
-                   p125*(VVEL(imt-1,j+1,k)*DXU(imt-1,j+1)*DZU(imt-1,j+1,k) + &
-                         VVEL(imt-1,j  ,k)*DXU(imt-1,j  )*DZU(imt-1,j  ,k) + &
-                         VVEL(1    ,j+1,k)*DXU(1    ,j+1)*DZU(1    ,j+1,k) + &
-                         VVEL(1    ,j  ,k)*DXU(1    ,j  )*DZU(1    ,j  ,k))
-    do i = 2,imt-1
-      UUE_k(i,j) = p25 *(UVEL(i+1,j  ,k)*DYU(i+1,j  )*DZU(i+1,j  ,k) + &
-                         UVEL(i  ,j  ,k)*DYU(i  ,j  )*DZU(i  ,j  ,k))+ &
-                   p125*(UVEL(i+1,j-1,k)*DYU(i+1,j-1)*DZU(i+1,j-1,k) + &
-                         UVEL(i  ,j-1,k)*DYU(i  ,j-1)*DZU(i  ,j-1,k) + &
-                         UVEL(i+1,j+1,k)*DYU(i+1,j+1)*DZU(i+1,j+1,k) + &
-                         UVEL(i  ,j+1,k)*DYU(i  ,j+1)*DZU(i  ,j+1,k))
-      VUN_k(i,j) = p25 *(VVEL(i  ,j+1,k)*DXU(i  ,j+1)*DZU(i  ,j+1,k) + &
-                         VVEL(i  ,j  ,k)*DXU(i  ,j  )*DZU(i  ,j  ,k))+ &
-                   p125*(VVEL(i-1,j+1,k)*DXU(i-1,j+1)*DZU(i-1,j+1,k) + &
-                         VVEL(i-1,j  ,k)*DXU(i-1,j  )*DZU(i-1,j  ,k) + &
-                         VVEL(i+1,j+1,k)*DXU(i+1,j+1)*DZU(i+1,j+1,k) + &
-                         VVEL(i+1,j  ,k)*DXU(i+1,j  )*DZU(i+1,j  ,k))
-     enddo !i
-  enddo !j
-
-  do j = 2,jmt-1
-    do i = 1,imt-1
-      if ( DZU(i,j,k).ne.c0 ) then
-        UEU_eddy_k(i,j) = UEU_k(i,j) - p5*UUE_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
-                          * ( UVEL(i,j,k) + UVEL(i+1,j  ,k) )
-        UEV_eddy_k(i,j) = UEV_k(i,j) - p5*UUE_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
-                          * ( VVEL(i,j,k) + VVEL(i+1,j  ,k) )
-        VNU_eddy_k(i,j) = VNU_k(i,j) - p5*VUN_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
-                          * ( UVEL(i,j,k) + UVEL(i  ,j+1,k) )
-        VNV_eddy_k(i,j) = VNV_k(i,j) - p5*VUN_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
-                          * ( VVEL(i,j,k) + VVEL(i  ,j+1,k) )
-      endif
-    enddo !i
-  enddo !j
-
-  ! interpolate to TT-grid
-  call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,    &
-                         UEU_eddy_k,VNU_eddy_k,TTT_UEU_eddy_k,TTT_VNU_eddy_k)
-  call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,    &
-                         UEV_eddy_k,VNV_eddy_k,TTT_UEV_eddy_k,TTT_VNV_eddy_k)
-
-  cKem(:,:,k) = rho0 * 1.0E-04 *                                             &
-                          ( TTT_UEU_eddy_k(:,:) * DXT(:,:)   * DUDX(:,:,k) + &
-                            TTT_UEV_eddy_k(:,:) * DXT(:,:)   * DVDX(:,:,k) + &
-                            TTT_VNU_eddy_k(:,:) * DYT(:,:)   * DUDY(:,:,k) + &
-                            TTT_VNV_eddy_k(:,:) * DYT(:,:)   * DVDY(:,:,k) + &
-                            TTT_WTU_eddy(:,:,k) * DZT(:,:,k) * DUDZ(:,:,k) + &
-                            TTT_WTV_eddy(:,:,k) * DZT(:,:,k) * DVDZ(:,:,k) )
-   
-!===============================================================================
-   ! cPEm
-!===============================================================================
-
-  read (1,rec=nrec_UPD+k-1) UPD_k    ! [g/cm^3/s]
-  read (1,rec=nrec_VPD+k-1) VPD_k    ! [g/cm^3/s]
-
-  do j = 2,jmt-1
-    UTE_k(1  ,j) = p5 * ( UVEL(1  ,j  ,k)*DYU(1  ,j  )*DZU(1  ,j  ,k)         &
-                        + UVEL(1  ,j-1,k)*DYU(1  ,j-1)*DZU(1  ,j-1,k) )
-    VTN_k(1  ,j) = p5 * ( VVEL(1  ,j  ,k)*DXU(1  ,j  )*DZU(1  ,j  ,k)         &
-                        + VVEL(imt,j  ,k)*DXU(imt,j  )*DZU(imt,j  ,k) )
-
-    UTE_k(imt,j) = p5 * ( UVEL(imt  ,j  ,k)*DYU(imt  ,j  )*DZU(imt  ,j  ,k)   &
-                        + UVEL(imt  ,j-1,k)*DYU(imt  ,j-1)*DZU(imt  ,j-1,k) )
-    VTN_k(imt,j) = p5 * ( VVEL(imt  ,j  ,k)*DXU(imt  ,j  )*DZU(imt  ,j  ,k)   &
-                        + VVEL(imt-1,j  ,k)*DXU(imt-1,j  )*DZU(imt-1,j  ,k) )
-
-    do i = 2,imt-1
-      UTE_k(i,j)  = p5 * ( UVEL(i  ,j  ,k)*DYU(i  ,j  )*DZU(i  ,j  ,k)         &
-                         + UVEL(i  ,j-1,k)*DYU(i  ,j-1)*DZU(i  ,j-1,k) )
-      VTN_k(i,j)  = p5 * ( VVEL(i  ,j  ,k)*DXU(i  ,j  )*DZU(i  ,j  ,k)         &
-                         + VVEL(i-1,j  ,k)*DXU(i-1,j  )*DZU(i-1,j  ,k) )
-    enddo !i
-  enddo !j
-
-  do j = 2,jmt-1
-    do i = 1,imt-1
-      if ( DZT(i,j,k).ne.c0 ) then
-        UPD_eddy_k(i,j) = UPD_k(i,j) - p5 * UTE_k(i,j) / TAREA(i,j)           &
-                                   / DZT(i,j,k) * ( PD(i,j,k) + PD(i+1,j  ,k) )
-        VPD_eddy_k(i,j) = VPD_k(i,j) - p5 * VTN_k(i,j) / TAREA(i,j)           &
-                                   / DZT(i,j,k) * ( PD(i,j,k) + PD(i  ,j-1,k) )
-      endif
-      if ( ISNAN(UPD_eddy_k(i,j)) .and. k.lt.3 ) then
-        write (*,*) i,j,k, 'UPD_eddy_k is NaN'
-      endif 
-      if ( ISNAN(VPD_eddy_k(i,j)) .and. k.lt.3 ) then
-        write (*,*) i,j,k, 'VPD_eddy_k is NaN'
-      endif 
-    enddo !i
-  enddo !j
-
-    ! interpolate UPD/VPD to TTT grid
-  do j = 2, jmt
-    do i = 1, imt
-      if ( DZT(i,j,k).ne.c0 ) then
-        if ( i.eq.1 ) then
-          TTT_UPD_eddy_k(1,j) = p5 * ( UPD_eddy_k(1,j) + UPD_eddy_k(imt,j) )
-        else
-          TTT_UPD_eddy_k(i,j) = p5 * ( UPD_eddy_k(i,j) + UPD_eddy_k(i-1,j) )
-        endif
-          TTT_VPD_eddy_k(i,j) = p5 * ( VPD_eddy_k(i,j) + VPD_eddy_k(i,j-1) )
-      endif
-      if ( ISNAN(TTT_UPD_eddy_k(i,j)) .and. k.lt.3 ) then
-        write (*,*) i,j,k, 'TTT_UPD_eddy_k is NaN'
-      endif 
-      if ( ISNAN(TTT_VPD_eddy_k(i,j)) .and. k.lt.3 ) then
-        write (*,*) i,j,k, 'TTT_VPD_eddy_k is NaN'
-      endif 
-    enddo !i
-  enddo !j
-
-  cPem(:,:,k) = -g * n0_inv(k) * 1.0E06 *                                    &
-                            ( TTT_UPD_eddy_k(:,:) * DXT(:,:) * DPDDX(:,:,k)  &
-                            + TTT_VPD_eddy_k(:,:) * DYT(:,:) * DPDDY(:,:,k) )
-
-enddo !k
-
-call vol_int(imt,jmt,km,cKem,TAREA,DZT,cKem_int)
-call vol_int(imt,jmt,km,cPem,TAREA,DZT,cPem_int)
-
-write (*,*) '------------------------'
-write (*,*) 'FLUX FORMULATION RESULTS'
-write (*,*) ''
-
-write (*,300) 'cPem    =',    cPem_int, 'W',    cPem_int/-8.3E11
-write (*,300) 'cKem    =',    cKem_int, 'W',    cKem_int/-1.1E11
-write (*,300) 'cPKm    =',    cPKm_int, 'W',    cPKm_int/-4.9E11
-write (*,300) 'cPKe    =',    cPKe_int, 'W',    cPKe_int/ 7.3E11
-
-!  closing the output file
-close(1)
-
-!===============================================================================
-!  4. DISSIPATION
-!===============================================================================
-
-write (*,*) ''
-write (*,*) '4. DISSIPATION'
-
-dPm    = gPm_int + cPem_int - cPKm_int
-dPe    = gPe_int - cPem_int - cPKe_int
-dKm    = gKm_int + cKem_int + cPKm_int
-dKe    = gKe_int - cKem_int + cPKe_int
-
-write (*,300) 'dPm     =', dPm   , 'W',    dPm/1.66E12
-write (*,300) 'dPe     =', dPe   , 'W',    dPe/6.80E11
-write (*,300) 'dKm     =', dKm   , 'W',    dKm/1.36E12
-write (*,300) 'dKe     =', dKe   , 'W',    dKe/3.03E12
-
-!===============================================================================
-!  TESTING
-!===============================================================================
+! allocate(                                                                   &
+! WUU_WVEL(imt,jmt,km),                                                       &
+! WTU_k(imt,jmt),           WTV_k(imt,jmt),                                   &
+! WUU_WTU_eddy_k(imt,jmt),  WUU_WTV_eddy_k(imt,jmt),                          &
+! WTT_WTU_eddy_k(imt,jmt),  WTT_WTV_eddy_k(imt,jmt),                          &
+! WTT_WTU_eddy(imt,jmt,km), WTT_WTV_eddy(imt,jmt,km),                         &
+! TTT_WTU_eddy(imt,jmt,km), TTT_WTV_eddy(imt,jmt,km) )
+! 
+! do k = 1, km
+!   read (1,rec=nrec_WTU+k-1) WTU_k    ! [cm/s^2]
+!   read (1,rec=nrec_WTV+k-1) WTV_k    ! [cm/s^2]
+! 
+!   do j = 2,jmt
+!     WUU_WVEL(1,j,k) = p25 * ( WVEL(1  ,j  ,k) * TAREA(1  ,j  )                &
+!                             + WVEL(1  ,j-1,k) * TAREA(1  ,j-1)                &
+!                             + WVEL(imt,j  ,k) * TAREA(imt,j  )                &
+!                             + WVEL(imt,j-1,k) * TAREA(imt,j-1))               &
+!                           / UAREA(1,j)
+!     do i = 2,imt
+!       if ( j.eq.2 ) then
+!         WUU_WVEL(i,1,k) = p25 * ( WVEL(i  ,1  ,k) * TAREA(i  ,1  )            &
+!                                 + WVEL(i-1,1  ,k) * TAREA(i-1,1  ))           &
+!                               / UAREA(i,1)
+!       endif
+!     WUU_WVEL(i,j,k) = p25 * ( WVEL(i  ,j  ,k) * TAREA(i  ,j  )               &
+!                             + WVEL(i  ,j-1,k) * TAREA(i  ,j-1)               &
+!                             + WVEL(i-1,j  ,k) * TAREA(i-1,j  )               &
+!                             + WVEL(i-1,j-1,k) * TAREA(i-1,j-1))              &
+!                           / UAREA(i,j)
+!     enddo !i
+!   enddo !j
+! 
+!   do j = 1,jmt
+!     do i = 1,imt
+!       if ( DZU(i,j,k).ne.c0 ) then
+!         if ( k.eq.1 ) then
+!           WUU_WTU_eddy_k(i,j) = WTU_k(i,j) - WUU_WVEL(i,j,k)*UVEL(i,j,k)/DZU(i,j,k)
+!           WUU_WTV_eddy_k(i,j) = WTV_k(i,j) - WUU_WVEL(i,j,k)*VVEL(i,j,k)/DZU(i,j,k)
+!         else
+!           WUU_WTU_eddy_k(i,j) = WTU_k(i,j) - p5 * WUU_WVEL(i,j,k)                &
+!                                     * (UVEL(i,j,k) + UVEL(i,j,k-1))/DZU(i,j,k)
+!           WUU_WTV_eddy_k(i,j) = WTV_k(i,j) - p5 * WUU_WVEL(i,j,k)                &
+!                                       * (VVEL(i,j,k) + VVEL(i,j,k-1))/DZU(i,j,k)
+!         endif
+!       endif
+!     enddo !j
+!   enddo !i
+! 
+!   call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,             &
+!                       WUU_WTU_eddy_k(:,:),WTT_WTU_eddy_k)
+!   call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,             &
+!                       WUU_WTV_eddy_k(:,:),WTT_WTV_eddy_k)
+!     
+!   WTT_WTU_eddy(:,:,k) =  WTT_WTU_eddy_k(:,:)
+!   WTT_WTV_eddy(:,:,k) =  WTT_WTV_eddy_k(:,:)
+! 
+! enddo !k
+! 
+!    
+! write (*,*) 'after first k loop'
+! 
+! call wtt2ttt(imt,jmt,km,WTT_WTU_eddy,DZT,TTT_WTU_eddy)
+! call wtt2ttt(imt,jmt,km,WTT_WTV_eddy,DZT,TTT_WTV_eddy)
+! 
+! allocate(                                                                   &
+! UUE_k(imt,jmt), VUN_k(imt,jmt),                                             &
+! UEU_k(imt,jmt), UEV_k(imt,jmt),                                             &
+! VNU_k(imt,jmt), VNV_k(imt,jmt),                                             &
+! UTE_k(imt,jmt), VTN_k(imt,jmt),                                             &
+! UPD_k(imt,jmt), VPD_k(imt,jmt),                                             &
+! TTT_UEU_k(imt,jmt), TTT_UEV_k(imt,jmt),                                     &
+! TTT_VNU_k(imt,jmt), TTT_VNV_k(imt,jmt),                                     &
+! TTT_UPD_k(imt,jmt), TTT_VPD_k(imt,jmt),                                     &
+! UEU_eddy_k(imt,jmt), UEV_eddy_k(imt,jmt),                                   &
+! VNU_eddy_k(imt,jmt), VNV_eddy_k(imt,jmt),                                   & 
+! UPD_eddy_k(imt,jmt), VPD_eddy_k(imt,jmt),                                   & 
+! TTT_UEU_eddy_k(imt,jmt), TTT_UEV_eddy_k(imt,jmt),                           &
+! TTT_VNU_eddy_k(imt,jmt), TTT_VNV_eddy_k(imt,jmt),                           & 
+! TTT_UPD_eddy_k(imt,jmt), TTT_VPD_eddy_k(imt,jmt) )
+! 
+! write (*,*) 'just before k loop'
+! do k = 1, km
+!   read (1,rec=nrec_UEU+k-1) UEU_k    ! [cm/s^2]
+!   read (1,rec=nrec_VNU+k-1) VNU_k    ! [cm/s^2]
+!   read (1,rec=nrec_UEV+k-1) UEV_k    ! [cm/s^2]
+!   read (1,rec=nrec_VNV+k-1) VNV_k    ! [cm/s^2]
+! 
+! 
+!   ! interpolate to TT-grid
+!   !call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,WTU_k(:,:),TTT_WTU_k)
+!   !call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,WTV_k(:,:),TTT_WTV_k)
+! 
+!   !call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,UEU_k,VNU_k,TTT_UEU_k,TTT_VNU_k)
+!   !call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,UEV_k,VNV_k,TTT_UEV_k,TTT_VNV_k)
+! 
+!  ! edge cases!
+!   do j = 2,jmt-1
+!     UUE_k(1  ,j) = p25 *(UVEL(2  ,j  ,k)*DYU(2  ,j  )*DZU(2  ,j  ,k) + &
+!                          UVEL(1  ,j  ,k)*DYU(1  ,j  )*DZU(1  ,j  ,k))+ &
+!                    p125*(UVEL(2  ,j-1,k)*DYU(2  ,j-1)*DZU(2  ,j-1,k) + &
+!                          UVEL(1  ,j-1,k)*DYU(1  ,j-1)*DZU(1  ,j-1,k) + &
+!                          UVEL(2  ,j+1,k)*DYU(2  ,j+1)*DZU(2  ,j+1,k) + &
+!                          UVEL(1  ,j+1,k)*DYU(1  ,j+1)*DZU(1  ,j+1,k))
+!     VUN_k(1  ,j) = p25 *(VVEL(1  ,j+1,k)*DXU(1  ,j+1)*DZU(1  ,j+1,k) + &
+!                          VVEL(1  ,j  ,k)*DXU(1  ,j  )*DZU(1  ,j  ,k))+ &
+!                    p125*(VVEL(imt,j+1,k)*DXU(imt,j+1)*DZU(imt,j+1,k) + &
+!                          VVEL(imt,j  ,k)*DXU(imt,j  )*DZU(imt,j  ,k) + &
+!                          VVEL(2  ,j+1,k)*DXU(2  ,j+1)*DZU(2  ,j+1,k) + &
+!                          VVEL(2  ,j  ,k)*DXU(2  ,j  )*DZU(2  ,j  ,k))
+! 
+!     UUE_k(imt,j) = p25 *(UVEL(1    ,j  ,k)*DYU(1    ,j  )*DZU(1    ,j  ,k) + &
+!                          UVEL(imt  ,j  ,k)*DYU(imt  ,j  )*DZU(imt  ,j  ,k))+ &
+!                    p125*(UVEL(1    ,j-1,k)*DYU(1    ,j-1)*DZU(1    ,j-1,k) + &
+!                          UVEL(imt  ,j-1,k)*DYU(imt  ,j-1)*DZU(imt  ,j-1,k) + &
+!                          UVEL(1    ,j+1,k)*DYU(1    ,j+1)*DZU(1    ,j+1,k) + &
+!                          UVEL(imt  ,j+1,k)*DYU(imt  ,j+1)*DZU(imt  ,j+1,k))
+!     VUN_k(imt,j) = p25 *(VVEL(imt  ,j+1,k)*DXU(imt  ,j+1)*DZU(imt  ,j+1,k) + &
+!                          VVEL(imt  ,j  ,k)*DXU(imt  ,j  )*DZU(imt  ,j  ,k))+ &
+!                    p125*(VVEL(imt-1,j+1,k)*DXU(imt-1,j+1)*DZU(imt-1,j+1,k) + &
+!                          VVEL(imt-1,j  ,k)*DXU(imt-1,j  )*DZU(imt-1,j  ,k) + &
+!                          VVEL(1    ,j+1,k)*DXU(1    ,j+1)*DZU(1    ,j+1,k) + &
+!                          VVEL(1    ,j  ,k)*DXU(1    ,j  )*DZU(1    ,j  ,k))
+!     do i = 2,imt-1
+!       UUE_k(i,j) = p25 *(UVEL(i+1,j  ,k)*DYU(i+1,j  )*DZU(i+1,j  ,k) + &
+!                          UVEL(i  ,j  ,k)*DYU(i  ,j  )*DZU(i  ,j  ,k))+ &
+!                    p125*(UVEL(i+1,j-1,k)*DYU(i+1,j-1)*DZU(i+1,j-1,k) + &
+!                          UVEL(i  ,j-1,k)*DYU(i  ,j-1)*DZU(i  ,j-1,k) + &
+!                          UVEL(i+1,j+1,k)*DYU(i+1,j+1)*DZU(i+1,j+1,k) + &
+!                          UVEL(i  ,j+1,k)*DYU(i  ,j+1)*DZU(i  ,j+1,k))
+!       VUN_k(i,j) = p25 *(VVEL(i  ,j+1,k)*DXU(i  ,j+1)*DZU(i  ,j+1,k) + &
+!                          VVEL(i  ,j  ,k)*DXU(i  ,j  )*DZU(i  ,j  ,k))+ &
+!                    p125*(VVEL(i-1,j+1,k)*DXU(i-1,j+1)*DZU(i-1,j+1,k) + &
+!                          VVEL(i-1,j  ,k)*DXU(i-1,j  )*DZU(i-1,j  ,k) + &
+!                          VVEL(i+1,j+1,k)*DXU(i+1,j+1)*DZU(i+1,j+1,k) + &
+!                          VVEL(i+1,j  ,k)*DXU(i+1,j  )*DZU(i+1,j  ,k))
+!      enddo !i
+!   enddo !j
+! 
+!   do j = 2,jmt-1
+!     do i = 1,imt-1
+!       if ( DZU(i,j,k).ne.c0 ) then
+!         UEU_eddy_k(i,j) = UEU_k(i,j) - p5*UUE_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
+!                           * ( UVEL(i,j,k) + UVEL(i+1,j  ,k) )
+!         UEV_eddy_k(i,j) = UEV_k(i,j) - p5*UUE_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
+!                           * ( VVEL(i,j,k) + VVEL(i+1,j  ,k) )
+!         VNU_eddy_k(i,j) = VNU_k(i,j) - p5*VUN_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
+!                           * ( UVEL(i,j,k) + UVEL(i  ,j+1,k) )
+!         VNV_eddy_k(i,j) = VNV_k(i,j) - p5*VUN_k(i,j) / UAREA(i,j) / DZU(i,j,k)  &
+!                           * ( VVEL(i,j,k) + VVEL(i  ,j+1,k) )
+!       endif
+!     enddo !i
+!   enddo !j
+! 
+!   ! interpolate to TT-grid
+!   call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,    &
+!                          UEU_eddy_k,VNU_eddy_k,TTT_UEU_eddy_k,TTT_VNU_eddy_k)
+!   call interp_mom_fluxes(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),DXT,DXU,DYT,DYU,    &
+!                          UEV_eddy_k,VNV_eddy_k,TTT_UEV_eddy_k,TTT_VNV_eddy_k)
+! 
+!   cKem(:,:,k) = rho0 * 1.0E-04 *                                             &
+!                           ( TTT_UEU_eddy_k(:,:) * DXT(:,:)   * DUDX(:,:,k) + &
+!                             TTT_UEV_eddy_k(:,:) * DXT(:,:)   * DVDX(:,:,k) + &
+!                             TTT_VNU_eddy_k(:,:) * DYT(:,:)   * DUDY(:,:,k) + &
+!                             TTT_VNV_eddy_k(:,:) * DYT(:,:)   * DVDY(:,:,k) + &
+!                             TTT_WTU_eddy(:,:,k) * DZT(:,:,k) * DUDZ(:,:,k) + &
+!                             TTT_WTV_eddy(:,:,k) * DZT(:,:,k) * DVDZ(:,:,k) )
+!    
+! !===============================================================================
+!    ! cPEm
+! !===============================================================================
+! 
+!   read (1,rec=nrec_UPD+k-1) UPD_k    ! [g/cm^3/s]
+!   read (1,rec=nrec_VPD+k-1) VPD_k    ! [g/cm^3/s]
+! 
+!   do j = 2,jmt-1
+!     UTE_k(1  ,j) = p5 * ( UVEL(1  ,j  ,k)*DYU(1  ,j  )*DZU(1  ,j  ,k)         &
+!                         + UVEL(1  ,j-1,k)*DYU(1  ,j-1)*DZU(1  ,j-1,k) )
+!     VTN_k(1  ,j) = p5 * ( VVEL(1  ,j  ,k)*DXU(1  ,j  )*DZU(1  ,j  ,k)         &
+!                         + VVEL(imt,j  ,k)*DXU(imt,j  )*DZU(imt,j  ,k) )
+! 
+!     UTE_k(imt,j) = p5 * ( UVEL(imt  ,j  ,k)*DYU(imt  ,j  )*DZU(imt  ,j  ,k)   &
+!                         + UVEL(imt  ,j-1,k)*DYU(imt  ,j-1)*DZU(imt  ,j-1,k) )
+!     VTN_k(imt,j) = p5 * ( VVEL(imt  ,j  ,k)*DXU(imt  ,j  )*DZU(imt  ,j  ,k)   &
+!                         + VVEL(imt-1,j  ,k)*DXU(imt-1,j  )*DZU(imt-1,j  ,k) )
+! 
+!     do i = 2,imt-1
+!       UTE_k(i,j)  = p5 * ( UVEL(i  ,j  ,k)*DYU(i  ,j  )*DZU(i  ,j  ,k)         &
+!                          + UVEL(i  ,j-1,k)*DYU(i  ,j-1)*DZU(i  ,j-1,k) )
+!       VTN_k(i,j)  = p5 * ( VVEL(i  ,j  ,k)*DXU(i  ,j  )*DZU(i  ,j  ,k)         &
+!                          + VVEL(i-1,j  ,k)*DXU(i-1,j  )*DZU(i-1,j  ,k) )
+!     enddo !i
+!   enddo !j
+! 
+!   do j = 2,jmt-1
+!     do i = 1,imt-1
+!       if ( DZT(i,j,k).ne.c0 ) then
+!         UPD_eddy_k(i,j) = UPD_k(i,j) - p5 * UTE_k(i,j) / TAREA(i,j)           &
+!                                    / DZT(i,j,k) * ( PD(i,j,k) + PD(i+1,j  ,k) )
+!         VPD_eddy_k(i,j) = VPD_k(i,j) - p5 * VTN_k(i,j) / TAREA(i,j)           &
+!                                    / DZT(i,j,k) * ( PD(i,j,k) + PD(i  ,j-1,k) )
+!       endif
+!       if ( ISNAN(UPD_eddy_k(i,j)) .and. k.lt.3 ) then
+!         write (*,*) i,j,k, 'UPD_eddy_k is NaN'
+!       endif 
+!       if ( ISNAN(VPD_eddy_k(i,j)) .and. k.lt.3 ) then
+!         write (*,*) i,j,k, 'VPD_eddy_k is NaN'
+!       endif 
+!     enddo !i
+!   enddo !j
+! 
+!     ! interpolate UPD/VPD to TTT grid
+!   do j = 2, jmt
+!     do i = 1, imt
+!       if ( DZT(i,j,k).ne.c0 ) then
+!         if ( i.eq.1 ) then
+!           TTT_UPD_eddy_k(1,j) = p5 * ( UPD_eddy_k(1,j) + UPD_eddy_k(imt,j) )
+!         else
+!           TTT_UPD_eddy_k(i,j) = p5 * ( UPD_eddy_k(i,j) + UPD_eddy_k(i-1,j) )
+!         endif
+!           TTT_VPD_eddy_k(i,j) = p5 * ( VPD_eddy_k(i,j) + VPD_eddy_k(i,j-1) )
+!       endif
+!       if ( ISNAN(TTT_UPD_eddy_k(i,j)) .and. k.lt.3 ) then
+!         write (*,*) i,j,k, 'TTT_UPD_eddy_k is NaN'
+!       endif 
+!       if ( ISNAN(TTT_VPD_eddy_k(i,j)) .and. k.lt.3 ) then
+!         write (*,*) i,j,k, 'TTT_VPD_eddy_k is NaN'
+!       endif 
+!     enddo !i
+!   enddo !j
+! 
+!   cPem(:,:,k) = -g * n0_inv(k) * 1.0E06 *                                    &
+!                             ( TTT_UPD_eddy_k(:,:) * DXT(:,:) * DPDDX(:,:,k)  &
+!                             + TTT_VPD_eddy_k(:,:) * DYT(:,:) * DPDDY(:,:,k) )
+! 
+! enddo !k
+! 
+! call vol_int(1,1,1,imt,jmt,km,cKem,TAREA,DZT,cKem_int)
+! call vol_int(1,1,1,imt,jmt,km,cPem,TAREA,DZT,cPem_int)
+! 
+! write (*,*) '------------------------'
+! write (*,*) 'FLUX FORMULATION RESULTS'
+! write (*,*) ''
+! 
+! write (*,300) 'cPem    =',    cPem_int, 'W',    cPem_int/-8.3E11
+! write (*,300) 'cKem    =',    cKem_int, 'W',    cKem_int/-1.1E11
+! write (*,300) 'cPKm    =',    cPKm_int, 'W',    cPKm_int/-4.9E11
+! write (*,300) 'cPKe    =',    cPKe_int, 'W',    cPKe_int/ 7.3E11
+! 
+! !  closing the output file
+! close(1)
+! 
+! !===============================================================================
+! !  4. DISSIPATION
+! !===============================================================================
+! 
+! write (*,*) ''
+! write (*,*) '4. DISSIPATION'
+! 
+! dPm    = gPm_int + cPem_int - cPKm_int
+! dPe    = gPe_int - cPem_int - cPKe_int
+! dKm    = gKm_int + cKem_int + cPKm_int
+! dKe    = gKe_int - cKem_int + cPKe_int
+! 
+! write (*,300) 'dPm     =', dPm   , 'W',    dPm/1.66E12
+! write (*,300) 'dPe     =', dPe   , 'W',    dPe/6.80E11
+! write (*,300) 'dKm     =', dKm   , 'W',    dKm/1.36E12
+! write (*,300) 'dKe     =', dKe   , 'W',    dKe/3.03E12
+! 
+! !===============================================================================
+! !  TESTING
+! !===============================================================================
 
 !   write (*,*) ''
 !   write (*,*) 'TESTING'
 
 !   write (*,*) 'surface integrals of vertical velocities'
 !   do k = 1,km
-!   call surf_int(imt,jmt,WVEL(:,:,k),TAREA,DZT(:,:,k),WVEL_int)
+!   call surf_int(1,1,imt,jmt,WVEL(:,:,k),TAREA,DZT(:,:,k),WVEL_int)
 !   write (*,*) k, 'WVEL_int =', WVEL_int/area(k)/1.0E02, 'm/s'
 !   enddo
 !   >>> ca. 10^-13 m/s, seems correct
 
 !   write (*,*) 'surface integrals of TTT-vertical velocities'
 !   do k = 1,km
-!   call surf_int(imt,jmt,TTT_WVEL(:,:,k),TAREA,DZT(:,:,k),WVEL_int)
+!   call surf_int(1,1,imt,jmt,TTT_WVEL(:,:,k),TAREA,DZT(:,:,k),WVEL_int)
 !   write (*,*) k, 'WVEL_int =', WVEL_int/area(k)/1.0E02, 'm/s'
 !   enddo
 !   >>> same as above
 
 !   write (*,*) 'volume integral of vertical velocity'
-!   call vol_int(imt,jmt,km,TTT_WVEL,TAREA,DZT,WVEL_int)
+!   call vol_int(1,1,1,imt,jmt,km,TTT_WVEL,TAREA,DZT,WVEL_int)
 !   write (*,*) 'WVEL_int =', WVEL_int/volume/1.0E02, 'm/s'
 !   >>> 8.6*10^-8 m/s, seems correct
 !   >>> about the same for volume integral of WVEL, instead of TTT_WVEL
@@ -1145,58 +1106,40 @@ close(3)
 
 write (*,*) ''
 write (*,*) 'OUTPUT'
-open  (1,file=('output/total_LEC_ff_'//year)//'.out',form='formatted')
-write (1,100) 'pd_avg',                                                     &
-              'rPm','rPe','rKm','rKe',                                          &
-              'gPmh','gPms','gPm',                                          &
-              'gPeh','gPes','gPe',                                          &
-              'gKm','gKe',                                                  &
-              'cPem','cKem','cPKm','cPKe',                                  &
-              'dPm','dPe','dKm','dKe'
-write (1,101) pd_avg,                                                       &
-              rPm_int,     rPe_int,     rKm_int,     rKe_int,               &
-              gPmh_int,    gPms_int,    gPm_int,                            &
-              gPeh_int,    gPes_int,    gPe_int,                            &
-              gKm_int,     gKe_int,                                         &
-              cPem_int,    cKem_int,    cPKm_int,    cPKe_int,              &
-              dPm,          dPe,        dKm,         dKe
-close (1)
+
+! open  (1,file=('output/total_LEC_ff_'//year)//'.out',form='formatted')
+! write (1,100) 'pd_avg',                                                        &
+!               'rPm','rPe','rKm','rKe',                                         &
+!               'gPmh','gPms','gPm',                                             &
+!               'gPeh','gPes','gPe',                                             &
+!               'gKm','gKe',                                                     &
+!               'cPem','cKem','cPKm','cPKe',                                     &
+!               'dPm','dPe','dKm','dKe',                                         &
+!               'V2U2'
+! write (1,101) pd_avg,                                                          &
+!               rPm_int,     rPe_int,     rKm_int,     rKe_int,                  &
+!               gPmh_int,    gPms_int,    gPm_int,                               &
+!               gPeh_int,    gPes_int,    gPe_int,                               &
+!               gKm_int,     gKe_int,                                            &
+!               cPem_int,    cKem_int,    cPKm_int,    cPKe_int,                 &
+!               dPm,          dPe,        dKm,         dKe,                      &
+!               V2U2
+! close (1)
 
 
 200 FORMAT (13(A,","),A)
 201 FORMAT (13(E15.7,","),E15.7)
 open  (2,file='output/level_LEC_'//(year//'.out'),form='formatted')
-write (2,200) 'k','depth_k','area_k','rho_ref_k','pd_ref_k','n0_k',         &
-              'rPm_k','rPe_k','rKm_k','rKe_k',                                  &
+write (2,200) 'k','depth_k','area_k','rho_ref_k','pd_ref_k','n0_k',            &
+              'rPm_k','rPe_k','rKm_k','rKe_k',                                 &
               'cPem_k','cKem_k','cPKm_k','cPKe_k'
 do k = 1,km
   !surface integrals of energy budget terms
-  write (2,201)  real(k), tdepth(k), area(k), rho_ref(k), pd_ref(k), n0(k), &
-               rPm_sint(k),  rPe_sint(k),  rKm_sint(k),  rKe_sint(k),       &
-               cPem_sint(k), cKem_sint(k), cPKm_sint(k), cPKe_sint(k)
+  write (2,201) real(k), tdepth(k), area(k), rho_ref(k), pd_ref(k), n0(k),     &
+                rPm_sint(k),  rPe_sint(k),  rKm_sint(k),  rKe_sint(k),         &
+                cPem_sint(k), cKem_sint(k), cPKm_sint(k), cPKe_sint(k)
 enddo
 close (2)
-
-
-!write(*,*) rec_length
-
-!open  (3,file='density',form='unformatted',access='direct',                 &
-!       recl=rec_length)
-!do k = 1,km
-!  write(3,rec=k) RHO(:,:,k) 
-!enddo
-!close(3)
-!
-!
-!
-!open  (3,file='temperature',form='unformatted',access='direct',             &
-!       recl=rec_length)
-!do k = 1,km
-!  write(3,rec=k) TEMP(:,:,k) 
-!enddo
-!close(3)
-
-
 
 write (*,*) '>>> done writing output'
 
@@ -1263,49 +1206,85 @@ end function pressure
 
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
- 
-subroutine surf_int(imt,jmt,FIELD,TAREA,MASK,INTEGRAL)
+
+subroutine load_3D_field(imt,jmt,km,nfile,nrec,FIELD)
+!
+!  loads 3D field (starting with record number nrec) from file with number nfile
+!
+implicit none
+
+integer, intent(in)                         :: imt, jmt, km, nfile,  nrec
+real,    dimension(imt,jmt)                 :: WORK
+real,    dimension(imt,jmt,km), intent(out) :: FIELD
+
+do k = 1,km
+  read (nfile,rec=nrec+k-1) WORK
+  FIELD(:,:,k) = WORK
+enddo
+
+end subroutine
+
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+subroutine load_2D_field(imt,jmt,nfile,nrec,FIELD)
+!
+!  loads 2D field (starting with record number nrec) from file with number nfile
+!
+implicit none
+
+integer, intent(in)                      :: imt, jmt, nfile,  nrec
+real,    dimension(imt,jmt), intent(out) :: FIELD
+
+read (nfile,rec=nrec) FIELD
+
+end subroutine
+
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+subroutine surf_int(imin,jmin,imax,jmax,FIELD,TAREA,MASK,INTEGRAL)
 !
 !     calculates surface integral (*[m^2]) for TT-surface, using Kahan Summation
 !
 implicit none
 
 ! input/output variables
-integer,                                 intent(in)  :: imt,jmt
+integer,                                 intent(in)  :: imin,jmin,imax,jmax
 real,                dimension(imt,jmt), intent(in)  :: FIELD, MASK!=DZT(:,:,1)
 double precision,    dimension(imt,jmt), intent(in)  :: TAREA 
 real,                                    intent(out) :: INTEGRAL
 real                                                 :: c, y, t
 
-INTEGRAL = 0.0
-c = 0.0
-do j = 1,jmt
- do i = 1,imt
-  if ( MASK(i,j).ne.0.0 ) then
-   y = TAREA(i,j) * FIELD(i,j) - c
-   t = INTEGRAL + y
-   c = ( t - INTEGRAL ) - y
-   INTEGRAL = t
-  endif
- enddo !i
-enddo !j
-
-INTEGRAL = INTEGRAL/1.0E04
+! INTEGRAL = 0.0
+! c = 0.0
+! do j = jmin,jmax
+!  do i = imin,imax
+!   if ( MASK(i,j).ne.0.0 ) then
+!    y = TAREA(i,j) * FIELD(i,j) - c
+!    t = INTEGRAL + y
+!    c = ( t - INTEGRAL ) - y
+!    INTEGRAL = t
+!   endif
+!  enddo !i
+! enddo !j
+! 
+! INTEGRAL = INTEGRAL/1.0E04
 
 !      INTEGRAL = sum(TAREA*FIELD, MASK.ne.0.0)/1.0E04
+INTEGRAL = sum(TAREA(imin:imax,jmin:jmax)*FIELD(imin:imax,jmin:jmax),          &
+               MASK(imin:imax,jmin:jmax).ne.0.0)/1.0E04 
 
-end subroutine
+end subroutine surf_int
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
  
-subroutine vol_int(imt,jmt,km,FIELD,TAREA,DZT,INTEGRAL)
+subroutine vol_int(imin,jmin,kmin,imax,jmax,kmax,FIELD,TAREA,DZT,INTEGRAL)
 !
 !     calculates volume integral (*[m^3]) for TTT-field, using Kahan Summation
 !
 implicit none
 
 ! input/output variables
-integer,                                    intent(in)  :: imt,jmt,km
+integer,             intent(in)  :: imin,jmin,kmin,imax,jmax,kmax
 real,                dimension(imt,jmt,km), intent(in)  :: FIELD
 double precision,    dimension(imt,jmt   ), intent(in)  :: TAREA
 real,                dimension(imt,jmt,km), intent(in)  :: DZT
@@ -1314,9 +1293,9 @@ real                                                    :: c, y, t
 
 INTEGRAL = 0.0
 c = 0.0
-do k = 1,km
-  do j = 1,jmt
-    do i = 1,imt
+do k = kmin,kmax
+  do j = jmin,jmax
+    do i = imin,imax
       if ( DZT(i,j,k).ne.0.0 ) then
         y = TAREA(i,j) * DZT(i,j,k) * FIELD(i,j,k) - c
         t = INTEGRAL + y
@@ -1329,9 +1308,11 @@ enddo !k
 
 INTEGRAL = INTEGRAL/1.0E06
 
-!      INTEGRAL = sum(TAREA*sum(DZT*FIELD,3))/1.0E06
+!INTEGRAL = sum(TAREA(imin:imax,jmin:jmax)                                      &
+!         * sum(DZT(imin:imax,jmin:jmax,kmin:kmax)                              &
+!         * FIELD(imin:imax,jmin:jmax,kmin:kmax),3))/1.0E06
 
-end subroutine
+end subroutine vol_int
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
  
@@ -1360,27 +1341,14 @@ real,             parameter                         :: p5=0.5, c0=0.0
 
 write (*,*) 'grad rho started'
 
+DRHODX = c0
+DRHODY = c0
+
 do k = 1,km
-  ! initialize lateral boundary terms as zero, needed for the interpolation
-  ! later
-  do i = 2,imt
-    do j = 2,jmt 
-      if ( DZT(i,j,k).ne.c0 ) then
-        DRHODX(i  ,j  ,k) = c0
-        DRHODX(i-1,j  ,k) = c0
-        DRHODX(i  ,j-1,k) = c0
-        DRHODX(i-1,j-1,k) = c0
-        DRHODY(i  ,j  ,k) = c0
-        DRHODY(i-1,j  ,k) = c0
-        DRHODY(i  ,j-1,k) = c0
-        DRHODY(i-1,j-1,k) = c0
-      endif
-    enddo !j
-  enddo !i
-  
+
   ! northermost line between poles of tripolar grid
   do i = 1,imt-1
-    if ( DZU(i,jmt,k).ne.c0 .and. k.le.kmT(i,jmt) ) then
+    if ( DZU(i,jmt,k).ne.c0 ) then
       if ( i.lt.imt/2 ) then      ! first half of array, before wrapping around
         DRHODX(i,jmt,k) = ( ( RHO(i+1    ,jmt,k) + RHO(imt-i  ,jmt,k) )       &
                           - ( RHO(i      ,jmt,k) + RHO(imt-i+1,jmt,k) ) )     &
@@ -1398,7 +1366,7 @@ do k = 1,km
   do j = 1,jmt-1
   
   ! eastern boundary
-    if ( DZU(imt,j,k).ne.c0 .and. k.le.kmT(i,j) ) then
+    if ( DZU(imt,j,k).ne.c0 ) then
       DRHODX(imt,j,k) = ( ( RHO(1  ,j  ,k) + RHO(1  ,j+1,k) )               &
                         - ( RHO(imt,j  ,k) + RHO(imt,j+1,k) ) )             &
                         / 2 / DXU(imt,j)
@@ -1408,7 +1376,7 @@ do k = 1,km
     endif
   ! rest of arrays
     do i = 1,imt-1
-      if ( DZU(i,j,k).ne.c0 .and. k.le.kmT(i,j) ) then
+      if ( DZU(i,j,k).ne.c0 ) then
         DRHODX(i,j,k) = ( ( RHO(i+1,j  ,k) + RHO(i+1,j+1,k) )                &
                         - ( RHO(i  ,j  ,k) + RHO(i  ,j+1,k) ) )              &
                         / 2 / DXU(i,j)
@@ -1426,11 +1394,14 @@ do k = 1,km
       endif
       if ( ISNAN(DRHODY(i,j,k)) ) then
         write (*,*) i,j,k, 'DRHODY is NaN'
-      !write (*,*)  DRHODX(i,j,k), DRHODY(i,j,k), kmT(i,j)
-      !write (*,*)  DZT(i,j,k), DZU(i,j,k), DYU(i,j)
-      !write (*,*)  RHO(i,j+1,k), RHO(i+1,j+1,k)
-      !write (*,*)  RHO(i,j,k), RHO(i+1,j,k)
-      !DRHODY(i,j,k) = c0
+        if ( i.gt.3595 ) then
+          write (*,*) DRHODX(i,j,k), DRHODY(i,j,k), kmT(i,j)
+          write (*,*) DZT(i,j,k), DZU(i,j,k), DYU(i,j)
+          write (*,*) RHO(i,j+1,k), RHO(i+1,j+1,k)
+          write (*,*) RHO(i,j,k), RHO(i+1,j,k)
+          write (*,*) ' '
+          !DRHODY(i,j,k) = c0
+        endif
       endif
       if ( DRHODY(i,j,k) == 1.0/0 .or. DRHODY(i,j,k) == -1/0.0 ) then
         write (*,*) i,j,k, 'DRHODY is +/- Infinity'
@@ -1462,7 +1433,6 @@ do k = 1,km
       endif
     enddo !i
   enddo !j
-  write (*,*) k, 'test'
 
 enddo !k
 
@@ -1683,12 +1653,12 @@ do j = 2, jmt
   enddo !i
 enddo !j
 
-call surf_int(imt,jmt,UE_FIELD,    UAREA,DZT_k,A)
-call surf_int(imt,jmt,UE_NEW_FIELD,TAREA,DZT_k,B)
+call surf_int(1,1,imt,jmt,UE_FIELD,    UAREA,DZT_k,A)
+call surf_int(1,1,imt,jmt,UE_NEW_FIELD,TAREA,DZT_k,B)
 !      write (*,*) 'A: ', A, 'B: ', B
 write (*,*) k, 'rel. diff. of UE flux interp.: ', (A-B)/B
-call surf_int(imt,jmt,VN_FIELD,    UAREA,DZT_k,A)
-call surf_int(imt,jmt,VN_NEW_FIELD,TAREA,DZT_k,B)
+call surf_int(1,1,imt,jmt,VN_FIELD,    UAREA,DZT_k,A)
+call surf_int(1,1,imt,jmt,VN_NEW_FIELD,TAREA,DZT_k,B)
 !      write (*,*) 'A: ', A, 'B: ', B
 write (*,*) k, 'rel. diff. of VN flux interp.: ', (A-B)/B
 
@@ -1743,11 +1713,32 @@ do j = 2, jmt
   enddo !i
 enddo !j
 
-call surf_int(imt,jmt,NEW_FIELD_k_old,TAREA,DZT_k,A)
-call surf_int(imt,jmt,NEW_FIELD_k    ,TAREA,DZT_k,B)
+call surf_int(1,1,imt,jmt,NEW_FIELD_k_old,TAREA,DZT_k,A)
+call surf_int(1,1,imt,jmt,NEW_FIELD_k    ,TAREA,DZT_k,B)
 write (*,*) 'uu2tt method error: ', k, (A-B)/B
 
 end subroutine uu2tt
+
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+subroutine uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,TUU_FIELD,TTT_FIELD)
+implicit none
+!
+!  interpolates a 3D field from UU to TT
+!
+
+integer                                  :: imt,jmt,km
+real, dimension(imt,jmt)                 :: WORK
+double precision, dimension(imt,jmt),    intent(in)  :: TAREA, UAREA
+real, dimension(imt,jmt,km), intent(in)  :: TUU_FIELD, DZU, DZT
+real, dimension(imt,jmt,km), intent(out) :: TTT_FIELD
+
+do k = 1,km
+  call uu2tt(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,TUU_FIELD(:,:,k),WORK)
+  TTT_FIELD(:,:,k) = WORK
+enddo
+
+end subroutine uu2tt_3D
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
@@ -1794,6 +1785,28 @@ enddo !j
 
 end subroutine uu2tt_scalar
 
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+subroutine uu2tt_scalar_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,TUU_FIELD,TTT_FIELD)
+implicit none
+!
+!  interpolates a 3D field from UU to TT
+!
+
+integer                                  :: imt,jmt,km
+real, dimension(imt,jmt)                 :: WORK
+double precision, dimension(imt,jmt),    intent(in)  :: TAREA, UAREA
+real, dimension(imt,jmt,km), intent(in)  :: TUU_FIELD, DZU, DZT
+real, dimension(imt,jmt,km), intent(out) :: TTT_FIELD
+
+do k = 1,km
+  call uu2tt_scalar(imt,jmt,k,DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,TUU_FIELD(:,:,k),WORK)
+  TTT_FIELD(:,:,k) = WORK
+enddo
+
+end subroutine uu2tt_scalar_3D
+
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 !
 !  Below are some useful (model-native?) subroutines

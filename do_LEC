@@ -10,7 +10,7 @@
 # -----------------------------------
 
 set year      = $argv[1]
-set inputfile = "/projects/0/samoc/jan/Andree/t.t0.1_42l_nccs01.tavg.year.$year"
+set inputfile = "/projects/0/samoc/jan/Andree/t.t0.1_42l_nccs01.tavg.5year.$year"
 
 ifort -O3 -convert big_endian -o LEC_$year LEC.f90 -lnetcdf -lnetcdff
 
@@ -128,23 +128,25 @@ rm in_list_$year
  
 echo "All calculations successfully done."
 
+mv LEC_bin_$year /projects/0/samoc/jan/Andree/LEC_bin_$year
 
-cp LEC_bin.hdr LEC_bin_$year.hdr
+# cp LEC.hdr /projects/0/samoc/jan/Andree/LEC_bin_$year.hdr 
+# ./bin2nc/bin2nc /projects/0/samoc/jan/Andree/LEC_bin_$year rKm
+
 # # creating 0.1 deg curvilinear netCDF files of LEC terms
+# cp LEC_bin.hdr LEC_bin_$year.hdr
+# ./bin2nc/bin2nc LEC_bin_$year rPm
+# ./bin2nc/bin2nc LEC_bin_$year rPe
+# ./bin2nc/bin2nc LEC_bin_$year rKm
+# ./bin2nc/bin2nc LEC_bin_$year rKe
+# rm LEC_bin_$year.hdr 
 
-# cp LEC.hdr LEC.bin.$year.hdr 
-# ./bin2nc/bin2nc LEC.bin.$year rPm
-# ./bin2nc/bin2nc LEC.bin.$year rPe
-# ./bin2nc/bin2nc LEC.bin.$year rKm
-# ./bin2nc/bin2nc LEC.bin.$year rKe
-# rm LEC.bin.$year.hdr 
+# # creating interpolated recangular 0.4 deg netCDF from binary
 
-# # interpolating netCDF files from 0.1 curvilinear to 0.4 rectangular
-
-./tx0.1_to_0.4/nccurv2ncrect.sc LEC_bin_$year .
-mv LEC_bin_$year.interp900x602.nc /projects/0/samoc/jan/Andree/LEC_interp900x602_$year.nc
-rm LEC_bin_$year.hdr
-rm LEC_bin_$year
+# ./tx0.1_to_0.4/nccurv2ncrect.sc LEC_bin_$year .
+# mv LEC_bin_$year.interp900x602.nc /projects/0/samoc/jan/Andree/LEC_interp900x602_$year.nc
+# rm LEC_bin_$year.hdr
+# rm LEC_bin_$year
 
 
 
