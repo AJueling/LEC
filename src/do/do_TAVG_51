@@ -1,0 +1,40 @@
+#!/bin/csh -f
+#
+# This script averages 5 yearly  average output files to create a 5 year running mean file.
+# 
+set inputdir = "/projects/0/samoc/jan/Andree/"
+set outputdir = "/projects/0/samoc/jan/Andree/"
+set filebase  = "t.t0.1_42l_nccs01.tavg.year."
+set new_file_name = "t.t0.1_42l_nccs01.tavg.51.year.301"
+
+# timeseries info
+# using the previously (12 months --> 1 year) averaged files
+# storing temporailty on scratch
+
+set midyear  = 301
+
+ifort -O3 -convert big_endian -o TAVG_BIN_51_$midyear TAVG_BIN_5.f90
+
+@ tavg_len = 51
+
+echo "$tavg_len"                 > in_list_51_$midyear
+
+echo "3600,2400,1711"           >> in_list_51_$midyear
+
+echo "$outputdir$new_file_name" >> in_list_51_$midyear
+
+set t = -25
+while ( $t < 26 )
+  @ y = $midyear + $t
+  set y_str = `echo $y | awk '{printf("%03d\n",$0)}'`
+  set bin_file = $inputdir$filebase${y_str}
+  echo "$bin_file"
+  echo "$bin_file"              >> in_list_51_$midyear
+  @ t = $t + 1
+end  
+
+./TAVG_BIN_51_$midyear < in_list_51_$midyear
+
+rm in_list_51_$midyear
+rm TAVG_BIN_51_$midyear
+echo "Time averaging successfully done."

@@ -1,0 +1,9 @@
+#!/bin/csh -f
+#
+# This script averages multiple monthly average output files to create e.g. yearly averages.
+# This script is heavily adapted from the Atlantic salt budget time series script.
+# 
+ifort -O3 -convert big_endian -o MXL_program MXL.f90
+./MXL_program
+rm MXL_program
+echo "Time averaging successfully done."
