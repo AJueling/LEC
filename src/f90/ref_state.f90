@@ -30,8 +30,6 @@ real,             dimension(:,:),   allocatable ::                             &
   DXT, DYT, TAREA, DXU, DYU, UAREA, geometry2
 real,             dimension(:,:,:), allocatable ::                             &
   RHO,Q,PD,TEMP,SALT,DZT,DZU,D0,Dp
-double precision, dimension(:),     allocatable ::                             &
-  tdz
 double precision, parameter                     ::                             &
 c0 = 0., p125 = 0.125, p25 = 0.25, p5 = 0.5, c1 = 1.,rho0 = 4.1/3.996*1000
 
@@ -78,7 +76,7 @@ enddo
 close(1)
 
 ! read 1D geometry fields
-allocate( geometry2(6,km),tdz(km),dz(km),tdepth(km),area(km),p_z(km),vol(km) )
+allocate( geometry2(6,km),dz(km),tdepth(km),area(km),p_z(km),vol(km) )
 open(1,file=geometry2_file,access='direct',form='unformatted',recl=6,     &
        status='old')
 do k=1,km
@@ -104,11 +102,11 @@ open(1,file=tavg_file,access='direct',form='unformatted',recl=imt*jmt,         &
        status='old')
 
 ! read 3-D fields
-call load_3D_field(imt,jmt,km,1,nrec_RHO, RHO ) ! [g/cm^3]
-call load_3D_field(imt,jmt,km,1,nrec_PD,  PD  ) ! [g/cm^3]
-call load_3D_field(imt,jmt,km,1,nrec_Q,   Q   ) ! [g/cm^4]
-call load_3D_field(imt,jmt,km,1,nrec_SALT,SALT) ! [g/kg]
-call load_3D_field(imt,jmt,km,1,nrec_TEMP,TEMP) ! [degC]
+call load_3D_field(1,nrec_RHO, RHO ) ! [g/cm^3]
+call load_3D_field(1,nrec_PD,  PD  ) ! [g/cm^3]
+call load_3D_field(1,nrec_Q,   Q   ) ! [g/cm^4]
+call load_3D_field(1,nrec_SALT,SALT) ! [g/kg]
+call load_3D_field(1,nrec_TEMP,TEMP) ! [degC]
 
 close(1)
 
