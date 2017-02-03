@@ -129,26 +129,26 @@ open (1,file=LEC_file,access='direct',form='unformatted',recl=imt*jmt,  &
         status='unknown')
 write (*,*) 'file: ', LEC_file
 
-call load_3D_field(imt,jmt,km,1,nrec_rPm ,rPm )
-call load_3D_field(imt,jmt,km,1,nrec_rPe ,rPe )
-call load_3D_field(imt,jmt,km,1,nrec_rKm ,rKm )
-call load_3D_field(imt,jmt,km,1,nrec_rKe ,rKe )
+call load_3D_field(1,nrec_rPm ,rPm )
+call load_3D_field(1,nrec_rPe ,rPe )
+call load_3D_field(1,nrec_rKm ,rKm )
+call load_3D_field(1,nrec_rKe ,rKe )
 
-!call load_2D_field(imt,jmt,   1,nrec_gPm ,gPm )
-!call load_2D_field(imt,jmt,   1,nrec_gPe ,gPe )
-!call load_2D_field(imt,jmt,   1,nrec_gKm ,gKm )
-!call load_2D_field(imt,jmt,   1,nrec_gKe ,gKe )
-!call load_2D_field(imt,jmt,   1,nrec_gPmh,gPmh)
-!call load_2D_field(imt,jmt,   1,nrec_gPms,gPms)
-!call load_2D_field(imt,jmt,   1,nrec_gPeh,gPeh)
-!call load_2D_field(imt,jmt,   1,nrec_gPes,gPes)
+!call load_2D_field(   1,nrec_gPm ,gPm )
+!call load_2D_field(   1,nrec_gPe ,gPe )
+!call load_2D_field(   1,nrec_gKm ,gKm )
+!call load_2D_field(   1,nrec_gKe ,gKe )
+!call load_2D_field(   1,nrec_gPmh,gPmh)
+!call load_2D_field(   1,nrec_gPms,gPms)
+!call load_2D_field(   1,nrec_gPeh,gPeh)
+!call load_2D_field(   1,nrec_gPes,gPes)
 
-call load_3D_field(imt,jmt,km,1,nrec_cPem,cPem)
-call load_3D_field(imt,jmt,km,1,nrec_cKem,cKem)
-call load_3D_field(imt,jmt,km,1,nrec_cPKm,cPKm)
-call load_3D_field(imt,jmt,km,1,nrec_cPKe,cPKe)
+call load_3D_field(1,nrec_cPem,cPem)
+call load_3D_field(1,nrec_cKem,cKem)
+call load_3D_field(1,nrec_cPKm,cPKm)
+call load_3D_field(1,nrec_cPKe,cPKe)
 
-!call load_3D_field(imt,jmt,km,1,nrec_TEMP,TEMP)
+!call load_3D_field(1,nrec_TEMP,TEMP)
 
 close(1)
 

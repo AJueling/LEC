@@ -55,10 +55,8 @@ character*42  :: filename2
 integer                                         :: rec_length,i,j,k
 integer,          dimension(:,:),   allocatable :: kmT
 
-double precision                                :: volume 
-double precision, dimension(:),     allocatable :: dz,area
-double precision, dimension(:,:),   allocatable ::                             &
-  HTN, HTE, DXT, DYT, TAREA, DXU, DYU, UAREA, DZBC, HUW, HUS, WORK, WORK2, WORK3  
+real, dimension(:),     allocatable :: dz,area
+real, dimension(:,:),   allocatable :: DXT, DYT, TAREA, DXU, DYU, UAREA  
 
 real                                            ::                             &
   rPm_int, rPe_int, rKm_int, rKe_int
@@ -108,7 +106,7 @@ geometry2_file  = trim(input_folder)//'geometry2'
 ! read geometry fields
 allocate( DXT(imt,jmt), DYT(imt,jmt), TAREA(imt,jmt), DZT(imt,jmt,km),         &
           DXU(imt,jmt), DYU(imt,jmt), UAREA(imt,jmt), DZU(imt,jmt,km),         &
-          ref_state(15,km) )
+          dz(km),       area(km),     ref_state(15,km) )
 open(1,file=geometry_file,access='direct',form='unformatted',recl=imt*jmt,     &
        status='old')
 open(2,file=ref_state_file,access='direct',form='unformatted',recl=15,         &
@@ -127,7 +125,6 @@ do k=1,km
   read(1,rec=6+km+k) DZU(:,:,k) ! [m]
   read(2,rec=k)      ref_state(:,k) ! [varying]
   dz(k)            = ref_state(2,k) ! [m]
-  tdepth(k)        = ref_state(3,k) ! [m]
   area(k)          = ref_state(4,k) ! [m^2]
 enddo
 close(1)
@@ -238,9 +235,9 @@ do y = start_year, end_year
 
   ! loading VVEL, WVEL, TTT_VVEL
   allocate( VVEL(imt,jmt,km),   WVEL(imt,jmt,km), TTT_VVEL(imt,jmt,km) )
-  call load_3D_field(imt,jmt,km,1,nrec_VVEL,VVEL)
-  call load_3D_field(imt,jmt,km,1,nrec_WVEL,WVEL)
-  call uu2tt_3D(imt,jmt,km,DZT,DZU,TAREA,UAREA,VVEL,TTT_VVEL)
+  call load_3D_field(1,nrec_VVEL,VVEL)
+  call load_3D_field(1,nrec_WVEL,WVEL)
+  call uu2tt_3D(DZT,DZU,TAREA,UAREA,VVEL,TTT_VVEL)
   !=============================================================================
   !  1. cPKm/cPKe
   !=============================================================================
@@ -252,16 +249,16 @@ do y = start_year, end_year
               cPKm_rsum(jmt),     cPKe_rsum(jmt) )
   
     ! load fields
-    call load_3D_field(imt,jmt,km,2,nrec_cPKm,cPKm)
-    call load_3D_field(imt,jmt,km,2,nrec_cPKe,cPKe)
+    call load_3D_field(2,nrec_cPKm,cPKm)
+    call load_3D_field(2,nrec_cPKe,cPKe)
   
     !vertical integral
     call vert_int(cPKm,DZT,cPKm_vint)
     call vert_int(cPKe,DZT,cPKe_vint)
   
     ! zonal-depth integral
-    call zonal_int(imt,jmt,DXT,cPKm_vint,cPKm_zint)
-    call zonal_int(imt,jmt,DXT,cPKe_vint,cPKe_zint)
+    call zonal_int(DXT,cPKm_vint,cPKm_zint)
+    call zonal_int(DXT,cPKe_vint,cPKe_zint)
   
     ! write into interal fields cPKm_vint
     write ( 3,rec=y-start_year+1) cPKm_vint(:,:)
@@ -289,10 +286,10 @@ do y = start_year, end_year
               vrKm_rsum(jmt),     vrKe_rsum(jmt) )
   
     ! load fields
-    call load_3D_field(imt,jmt,km,2,nrec_rPm, rPm )
-    call load_3D_field(imt,jmt,km,2,nrec_rPe, rPe )
-    call load_3D_field(imt,jmt,km,2,nrec_rKm, rKm )
-    call load_3D_field(imt,jmt,km,2,nrec_rKe, rKE )
+    call load_3D_field(2,nrec_rPm, rPm )
+    call load_3D_field(2,nrec_rPe, rPe )
+    call load_3D_field(2,nrec_rKm, rKm )
+    call load_3D_field(2,nrec_rKe, rKE )
 
     call vol_int(1,1,1,imt,jmt,km,rPm,TAREA,DZT,rPm_int)
     call vol_int(1,1,1,imt,jmt,km,rPe,TAREA,DZT,rPe_int)
@@ -301,16 +298,16 @@ do y = start_year, end_year
     write (*,*) rPm_int, rPe_int, rKm_int, rKe_int
   
     ! calculate vertically integrated, meridional advection
-    call mer_advection(imt,jmt,km,DXT,DZT,TTT_VVEL,rPm,vrPm_vint)
-    call mer_advection(imt,jmt,km,DXT,DZT,TTT_VVEL,rPe,vrPe_vint)
-    call mer_advection(imt,jmt,km,DXT,DZT,TTT_VVEL,rKm,vrKm_vint)
-    call mer_advection(imt,jmt,km,DXT,DZT,TTT_VVEL,rKe,vrKe_vint)
+    call mer_advection(DXT,DZT,TTT_VVEL,rPm,vrPm_vint)
+    call mer_advection(DXT,DZT,TTT_VVEL,rPe,vrPe_vint)
+    call mer_advection(DXT,DZT,TTT_VVEL,rKm,vrKm_vint)
+    call mer_advection(DXT,DZT,TTT_VVEL,rKe,vrKe_vint)
 
     ! calculate zonal-depth integral
-    call zonal_int(imt,jmt,DXT,vrPm_vint,vrPm_zint)
-    call zonal_int(imt,jmt,DXT,vrPe_vint,vrPe_zint)
-    call zonal_int(imt,jmt,DXT,vrKm_vint,vrKm_zint)
-    call zonal_int(imt,jmt,DXT,vrKe_vint,vrKe_zint)
+    call zonal_int(DXT,vrPm_vint,vrPm_zint)
+    call zonal_int(DXT,vrPe_vint,vrPe_zint)
+    call zonal_int(DXT,vrKm_vint,vrKm_zint)
+    call zonal_int(DXT,vrKe_vint,vrKe_zint)
   
     ! write to output file
     write ( 7,rec=y-start_year+1) vrPm_vint(:,:)
@@ -352,8 +349,8 @@ if ( opt1==1 ) then
   write ( 3,rec=nt+1) cPKm_avg(:,:)
   write ( 4,rec=nt+1) cPKe_avg(:,:)
 
-  call zonal_int(imt,jmt,DXT,cPKm_avg,cPKm_zint)
-  call zonal_int(imt,jmt,DXT,cPKe_avg,cPKe_zint)
+  call zonal_int(DXT,cPKm_avg,cPKm_zint)
+  call zonal_int(DXT,cPKe_avg,cPKe_zint)
   write (11,rec=nt+1) cPKm_zint(:)
   write (12,rec=nt+1) cPKe_zint(:)
 
@@ -393,10 +390,10 @@ if (opt3==1 ) then
   write ( 9,rec=nt+1) vrKm_avg(:,:)
   write (10,rec=nt+1) vrKe_avg(:,:)
 
-  call zonal_int(imt,jmt,DXT,vrPm_avg,vrPm_zint)
-  call zonal_int(imt,jmt,DXT,vrPe_avg,vrPe_zint)
-  call zonal_int(imt,jmt,DXT,vrKm_avg,vrKm_zint)
-  call zonal_int(imt,jmt,DXT,vrKe_avg,vrKe_zint)
+  call zonal_int(DXT,vrPm_avg,vrPm_zint)
+  call zonal_int(DXT,vrPe_avg,vrPe_zint)
+  call zonal_int(DXT,vrKm_avg,vrKm_zint)
+  call zonal_int(DXT,vrKe_avg,vrKe_zint)
   write (13,rec=nt+1) vrPm_zint(:)
   write (14,rec=nt+1) vrPe_zint(:)
   write (15,rec=nt+1) vrKm_zint(:)
@@ -437,16 +434,16 @@ implicit none
 !  calculates running sum
 !
 
-integer,                                 intent(in)  :: imt,jmt,km,opt
-integer                                              :: j
-real,             dimension(imt,jmt,km), intent(in)  :: DZT
+integer, intent(in)  :: imt,jmt,km,opt
+integer                                     :: j
+real,    dimension(imt,jmt,km), intent(in)  :: DZT
 if ( opt==1) then
-  real,           dimension(imt,jmt,km), intent(in)  :: FIELD
+  real,  dimension(imt,jmt,km), intent(in)  :: FIELD
 elseif ( opt==2 ) then
-  real,           dimension(imt,jmt),    intent(in)  :: FIELD
+  real,  dimension(imt,jmt),    intent(in)  :: FIELD
 endif
-real,             dimension(jmt),        intent(out) :: rsum
-double precision, dimension(imt,jmt),    intent(in)  :: DXT,DYT
+real,    dimension(jmt),        intent(out) :: rsum
+real,    dimension(imt,jmt),    intent(in)  :: DXT,DYT
 
 if ( opt==1 ) then
   rsum(:) = sum(sum(FIELD(:,:,:)*DZT(:,:,:),3)*DXT(:,:)*DYT(:,:),1)
@@ -471,9 +468,9 @@ implicit none
 !  file
 !
 
-integer                     , intent(in)  :: x,y,ntavg,nfile
-integer                                   :: t
-real,   dimension(x,y,ntavg), intent(out) :: FIELD
+integer,                       intent(in)  :: x,y,ntavg,nfile
+integer                                    :: t
+real,    dimension(x,y,ntavg), intent(out) :: FIELD
 
 do t = 1,ntavg
   read (nfile,rec=t) FIELD(:,:,t)

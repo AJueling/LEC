@@ -19,7 +19,7 @@ integer                              ::                                        &
 integer, dimension(:,:), allocatable ::                                        &
   XMASK
 character*160                        ::                                        & 
-  cmd,file_base,file_name,output_folder,grid_file,                             &
+  cmd,file_base,file_name,output_folder,geometry1_file,                        &
   HMXL_file,XMXL_file,TMXL_file,HMXL_mean_file,XMXL_mean_file,TMXL_mean_file,  &
   HMXL_std_file,XMXL_std_file,TMXL_std_file,XMASK_file,                        &
   HMXL_ymask_file,XMXL_ymask_file,TMXL_ymask_file,TEMP_ymask_file,             &
@@ -31,13 +31,12 @@ character*2                          ::                                        &
   month
 real                                 ::                                        &
   file_size,XMASK_area
-real,    dimension(:),   allocatable ::                                        &
+real, dimension(:),   allocatable    ::                                        &
   TEMP_avg, TEMP_avg2
-real,    dimension(:,:), allocatable ::                                        &
+real, dimension(:,:), allocatable    ::                                        &
   TEMP,HMXL,XMXL,TMXL,HMXL_avg,XMXL_max,TMXL_min,                              &
-  HMXL_mean,XMXL_mean,TMXL_mean,HMXL_sum,XMXL_sum,TMXL_sum
-double precision, dimension(:,:),   allocatable ::                             &
-  HTN,HTE,DXT,DYT,TAREA,WORK
+  HMXL_mean,XMXL_mean,TMXL_mean,HMXL_sum,XMXL_sum,TMXL_sum,                    &
+  DXT,DYT,TAREA
 double precision, parameter                     ::                             &
 c0 = 0., p125 = 0.125, p25 = 0.25, p5 = 0.5, c1 = 1.
 
@@ -51,22 +50,17 @@ nt         = end_year-start_year+1
 n          =   51
 
 !===============================================================================
-grid_file = '/home/dijkbio/andre/LEC/input/grid.3600x2400.fob.da'
-allocate( HTN(imt,jmt), HTE(imt,jmt), WORK(imt,jmt),                           &
-          DXT(imt,jmt), DYT(imt,jmt), TAREA(imt,jmt) )
-inquire (iolength = rec_length) HTN
-open    (1,file=grid_file,access='direct',form='unformatted',recl=rec_length,  &
-           status='unknown')
-  read  (1,rec=3) HTN ! [cm]
-  read  (1,rec=4) HTE ! [cm]
-close   (1)
-where (HTN <= c0) HTN = c1
-where (HTE <= c0) HTE = c1
-call s_rshift(WORK,HTN,imt,jmt)
-DXT   = p5*(HTN + WORK)
-call w_rshift(WORK,HTE,imt,jmt)
-DYT   = p5*(HTE + WORK)
-TAREA = DXT*DYT ! [cm^2]
+geometry1_file  = trim(LEC_folder)//'input/geometry1'
+! read 2D geometry fields
+allocate( DXT(imt,jmt), DYT(imt,jmt), TAREA(imt,jmt) )
+open(2,file=geometry1_file,access='direct',form='unformatted',recl=imt*jmt,    &
+       status='old')
+read(2,rec=1) DXT ! [m]
+read(2,rec=3) DYT ! [m]
+read(2,rec=5) TAREA ! [m^2]
+close(2)
+
+
 !===============================================================================
 
 output_folder   = '/projects/0/samoc/jan/Andree/MXL/'
@@ -403,7 +397,7 @@ do y=start_year,end_year
     ! monthly
     do k=1,km
       read(1,rec=nrec_TEMP+k-1) TEMP
-      call masked_avg(imt,jmt,DXT,DYT,XMASK,XMASK_area,TEMP,TEMP_avg(k))
+      call masked_avg(DXT,DYT,XMASK,XMASK_area,TEMP,TEMP_avg(k))
     enddo
     write(20,rec=counter) TEMP_avg(:)
 

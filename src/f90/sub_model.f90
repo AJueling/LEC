@@ -1,13 +1,14 @@
 !===============================================================================
-subroutine load_3D_field(imt,jmt,km,nfile,nrec,FIELD)
+subroutine load_3D_field(nfile,nrec,FIELD)
 !
 !  loads 3D field (starting with record number nrec) from file with
 !  number nfile
 !
 implicit none
 
-integer, intent(in)                         :: imt, jmt, km, nfile,
-nrec
+integer                                     :: k
+integer, parameter                          :: imt=3600,jmt=2400,km=42
+integer,                        intent(in)  :: nfile,nrec
 real,    dimension(imt,jmt)                 :: WORK
 real,    dimension(imt,jmt,km), intent(out) :: FIELD
 
@@ -20,14 +21,15 @@ end subroutine load_3d_field
 !===============================================================================
 
 !===============================================================================
-subroutine load_2D_field(imt,jmt,nfile,nrec,FIELD)
+subroutine load_2D_field(nfile,nrec,FIELD)
 !
 !  loads 2D field (starting with record number nrec) from file with
 !  number nfile
 !
 implicit none
 
-integer, intent(in)                      :: imt, jmt, nfile,  nrec
+integer, parameter                       :: imt=3600,jmt=2400,km=42
+integer,                     intent(in)  :: nfile,  nrec
 real,    dimension(imt,jmt), intent(out) :: FIELD
 
 read (nfile,rec=nrec) FIELD
@@ -41,15 +43,10 @@ implicit none
 !-----------------------------------------------------------------------
 !     shift from east (double precision arrays)
 !-----------------------------------------------------------------------
-!     inputs
+integer                                           :: i,j,n,ip
 integer,                              intent(in)  :: imt,jmt
-double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be
-shifted
-!     outputs
-double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted
-result
-!     local variables
-integer :: i,j,n,ip
+double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be shifted
+double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted result
 
 do j=1,jmt
   do i=1,imt
@@ -68,15 +65,10 @@ implicit none
 !-----------------------------------------------------------------------
 !     shift from south (real arrays)
 !-----------------------------------------------------------------------
-!     inputs
+integer                                           :: i,j,n,jm
 integer,                              intent(in)  :: imt,jmt
-double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be
-shifted
-!     outputs
-double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted
-result
-!     local variables
-integer :: i,j,n,jm
+double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be shifted
+double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted result
 
 do j=1,jmt
   jm = j - 1
@@ -95,15 +87,10 @@ implicit none
 !-----------------------------------------------------------------------
 !     shift from west (real arrays)
 !-----------------------------------------------------------------------
-!     inputs
+integer                                           :: i,j,n,im
 integer,                              intent(in)  :: imt,jmt
-double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be
-shifted
-!     outputs
-double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted
-result
-!     local variables
-integer :: i,j,n,im
+double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be shifted
+double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted result
 
 do j=1,jmt
   do i=1,imt
@@ -122,15 +109,10 @@ implicit none
 !-----------------------------------------------------------------------
 !     shift from north (double precision arrays)
 !-----------------------------------------------------------------------
-!     inputs
+integer                                           :: i,j,n,jp
 integer,                              intent(in)  :: imt,jmt
-double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be
-shifted
-!     outputs
-double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted
-result
-!     local variables
-integer :: i,j,n,jp
+double precision, dimension(imt,jmt), intent(in)  :: X    ! array to be shifted
+double precision, dimension(imt,jmt), intent(out) :: XOUT ! shifted result
 
 do j=1,jmt
   jp = j+1
