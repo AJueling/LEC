@@ -1,25 +1,51 @@
 !===============================================================================
-subroutine vol_int(imin,jmin,kmin,imax,jmax,kmax,FIELD,TAREA,DZT,INTEGRAL)
+subroutine vol_int_part(imin,jmin,kmin,imax,jmax,kmax,FIELD,AREA,dz,DZ_3D,INTEGRAL)
 !
-!     calculates volume integral (*[m^3]) for TTT-field
+!     calculates volume integral (*[m^3]) with partial bottom cells
 !
 implicit none
 
 ! input/output variables
-integer                                     :: i,j,k
 integer, parameter                          :: imt=3600,jmt=2400,km=42
 integer,                        intent(in)  :: imin,jmin,kmin,imax,jmax,kmax
-real,    dimension(imt,jmt,km), intent(in)  :: DZT,FIELD
-real,    dimension(imt,jmt),    intent(in)  :: TAREA
+real,    dimension(km),         intent(in)  :: dz
+real,    dimension(imt,jmt,km), intent(in)  :: DZ_3D,FIELD
+real,    dimension(imt,jmt),    intent(in)  :: AREA
 real,                           intent(out) :: INTEGRAL
 
-INTEGRAL = sum(TAREA(imin:imax,jmin:jmax)&
-         * sum(DZT(imin:imax,jmin:jmax,kmin:kmax)&
-         * FIELD(imin:imax,jmin:jmax,kmin:kmax),3,DZT.ne.0.0))
+INTEGRAL = sum( AREA(imin:imax,jmin:jmax)                                      &
+                * sum( DZ_3D(imin:imax,jmin:jmax,kmin:kmax)                    &
+                       * FIELD(imin:imax,jmin:jmax,kmin:kmax),                 &
+               3,DZ_3D(imin:imax,jmin:jmax,kmin:kmax).ne.0.0 ) )
 
-end subroutine vol_int
+end subroutine vol_int_part
 !===============================================================================
 
+!===============================================================================
+subroutine vol_int_full(imin,jmin,kmin,imax,jmax,kmax,FIELD,AREA,dz,DZ_3D,INTEGRAL)
+!
+!     calculates volume integral (*[m^3]) with full bottom cells
+!
+implicit none
+
+! input/output variables
+integer                                     :: k
+integer, parameter                          :: imt=3600,jmt=2400,km=42
+integer,                        intent(in)  :: imin,jmin,kmin,imax,jmax,kmax
+real,    dimension(km),         intent(in)  :: dz
+real,    dimension(imt,jmt,km), intent(in)  :: DZ_3D,FIELD
+real,    dimension(imt,jmt),    intent(in)  :: AREA
+real,                           intent(out) :: INTEGRAL
+
+INTEGRAL = 0.0
+do k = kmin,kmax
+  INTEGRAL = INTEGRAL                                                          &
+           + sum( AREA(imin:imax,jmin:jmax)*FIELD(imin:imax,jmin:jmax,k),      &
+                  DZ_3D(imin:imax,jmin:jmax,k).ne.0.0 ) * dz(k)
+enddo !k
+
+end subroutine vol_int_full
+!===============================================================================
 !===============================================================================
 subroutine vol_int2(imin,jmin,kmin,imax,jmax,kmax,FIELD,TAREA,DZT,INTEGRAL)
 !
@@ -61,8 +87,7 @@ subroutine surf_int_3D(imin,jmin,imax,jmax,FIELD,TAREA,DZT_k,INTEGRAL)
 !  calculates surface integrals *[m^2] weighting contribution by (pbc)cell-depth
 implicit none
 
-integer                                  :: i,j,k
-integer, parameter                       :: imt=3600,jmt=2400,km=42
+integer, parameter                          :: imt=3600,jmt=2400,km=42
 integer,                     intent(in)  :: imin,jmin,imax,jmax
 real,    dimension(imt,jmt), intent(in)  :: FIELD,TAREA,DZT_k
 real,                        intent(out) :: INTEGRAL
@@ -79,14 +104,13 @@ end subroutine surf_int_3D
 !===============================================================================
 
 !===============================================================================
-subroutine surf_int(imin,jmin,imax,jmax,FIELD,TAREA,MASK,INTEGRAL)
+subroutine surf_int_2D(imin,jmin,imax,jmax,FIELD,TAREA,MASK,INTEGRAL)
 !
 !     calculates surface integral (*[m^2]) for TT-surface, using Kahan Summation
 !
 implicit none
 
-integer                                  :: i,j,k
-integer, parameter                       :: imt=3600,jmt=2400,km=42
+integer, parameter                          :: imt=3600,jmt=2400,km=42
 integer,                     intent(in)  :: imin,jmin,imax,jmax
 real,    dimension(imt,jmt), intent(in)  :: FIELD,TAREA,MASK!=DZT(:,:,1)
 real,                        intent(out) :: INTEGRAL
@@ -94,7 +118,7 @@ real,                        intent(out) :: INTEGRAL
 INTEGRAL = sum(TAREA(imin:imax,jmin:jmax)*FIELD(imin:imax,jmin:jmax),          &
                MASK(imin:imax,jmin:jmax).ne.0.0)
 
-end subroutine surf_int
+end subroutine surf_int_2D
 !===============================================================================
 
 !===============================================================================
@@ -109,7 +133,7 @@ real,    dimension(km),         intent(in)  :: area_k
 real,    dimension(km),         intent(out) :: avg
 
 do k=1,km
-  avg(k) = sum(FIELD(:,:,k)*AREA,DZT(:,:,k).ne.0.0)/area_k(k)
+  avg(k) = sum(FIELD(:,:,k)*AREA(:,:),DZT(:,:,k).ne.0.0)/area_k(k)
 enddo
 
 end subroutine area_avg
@@ -127,7 +151,7 @@ real,    dimension(km),         intent(in)  :: vol
 real,    dimension(km),         intent(out) :: w_avg
 
 do k=1,km
-  w_avg(k) = sum(FIELD(:,:,k)*AREA(imt,jmt)*DZT(:,:,k),DZT(:,:,k).ne.0.0)/vol(k)
+  w_avg(k) = sum(FIELD(:,:,k)*AREA(:,:)*DZT(:,:,k),DZT(:,:,k).ne.0.0)/vol(k)
 enddo
 
 end subroutine area_avg_weighted

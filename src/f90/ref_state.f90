@@ -171,7 +171,8 @@ call area_avg_weighted(  D0       ,DZT,TAREA,vol, D0_wavg)
 call area_avg_weighted(  Dp       ,DZT,TAREA,vol, Dp_wavg)
 
 do k=1,km
-  write(*,*) k,T_avg(k)/T_wavg(k),S_avg(k)/S_wavg(k),RHO_avg(k)/RHO_wavg(k),PD_avg(k)/PD_wavg(k),Q_avg(k)/Q_wavg(k),D0_avg(k)/D0_wavg(k),Dp_avg(k)/Dp_wavg(k)
+  write(*,*) k,T_avg(k)/T_wavg(k),S_avg(k)/S_wavg(k),RHO_avg(k)/RHO_wavg(k),PD_avg(k)/PD_wavg(k),Q_avg(k)/Q_wavg(k),D0_avg(k),D0_wavg(k),Dp_avg(k),Dp_wavg(k)
+!D0_avg(k)/D0_wavg(k),Dp_avg(k)/Dp_wavg(k)
 enddo
 
 !stop

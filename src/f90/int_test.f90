@@ -3,8 +3,7 @@ implicit none
 
 !===============================================================================
 !
-!  this script calculates the reference state variable for the last 51 years of
-!  the extravars_viebahn high-resolution POP run
+!  compares surface integrals un-/weighted byt pbc-depth
 !  
 !===============================================================================
 
@@ -55,7 +54,7 @@ geometry2_file = trim(input_folder)//'geometry2'
 int_test_file  = '/home/dijkbio/andre/LEC/results/int_test/int_test'
 
 tavg_file      = trim(projects_folder)//'t.t0.1_42l_nccs01.tavg.51.year.301'
-LEC_file       = trim(projects_folder)//'LEC_bin_51_301'
+LEC_file       = trim(projects_folder)//'LEC_bin_5_301'
 
 
 write (*,*) ''

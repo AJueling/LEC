@@ -1,7 +1,7 @@
-!
-   program TAVG_BIN
+program TAVG
+implicit none
 
-!===============================================================================
+!||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 !
 !  Program takes a list of binary files and averages over them. This is
 !  used to create yearly averages from monthly average output of the
@@ -19,68 +19,52 @@
 !
 !  currently with the 40Gb output files, it takes about 5 min/file on Cartesius
 !
-!===============================================================================
-   implicit none
+!||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-!===============================================================================
-!  variables
-!===============================================================================
+integer                           :: imt, jmt, nrecs, length, i, j, k
+double precision                  :: frac
+character*120                     :: bin_file, new_file
+real, dimension(:,:), allocatable :: NEW, RECORD
 
-   integer                           :: imt, jmt, nrecs, length
-   integer                           :: i,j,k,rec_length
-   double precision                  :: frac
-   character*120                     :: bin_file, new_file
-   real, dimension(:,:), allocatable :: TAVG, RECORD, ZRECORD
+write (*,*) 'Enter number of files to be averaged:'
+read  (*,*) length
+frac = 1.0/real(length)
+write (*,*) 'number of files:', length, ' -> frac =', frac
+write (*,*) 'Enter dimensions of the binary files:'
+read  (*,*) imt, jmt, nrecs
+write(*,*) imt,jmt
+allocate( NEW(imt,jmt), RECORD(imt,jmt) )
 
-   write (*,*) 'Enter number of files to be averaged:'
-   read  (*,*) length
-   frac = 1.0/real(length)
-   write (*,*) 'number of files:', length, ' -> frac =', frac
+write (*,*) 'Enter the name of the new file:'
+read  (*,'(a120)') new_file
 
-   write (*,*) 'Enter dimensions of the binary files:'
-   read  (*,*) imt, jmt, nrecs
+open(1,file=new_file,access='direct',form='unformatted',recl=imt*jmt,status='unknown')
 
-   allocate( TAVG(imt,jmt), RECORD(imt,jmt), ZRECORD(imt,jmt) )
-   do j = 1,jmt
-   do i = 1,imt
-     ZRECORD(i,j) = 0.0
-   enddo
-   enddo
+! loop over files to be averaged
+do i = 1,length
 
-   write (*,*) 'Enter the name of the new file:'
-   read  (*,'(a120)') new_file
+  write(*,*) 'File number: ', i
+  read(*,'(a120)') bin_file
+  write(*,*) i, trim(bin_file)
+  open(2,file=bin_file,access='direct',form='unformatted',recl=imt*jmt,status='old',action='read')
 
-   inquire ( iolength = rec_length ) TAVG
-   open(1,file=new_file,access='direct',form='unformatted',recl=rec_length,status='unknown')
+  ! loop over records 
+  do k = 1,nrecs
 
-   ! loop over files to be averaged
-   do i = 1,length
+    if ( i==1 ) then
+      NEW(:,:) = 0.0
+    else
+      read  (1,rec=k) NEW
+    endif
 
-     write (*,*) 'File number: ', i
-     read  (*,'(a120)') bin_file
+    read  (2,rec=k) RECORD
+    NEW = NEW + frac*RECORD
+    write (1,rec=k) NEW
 
-     open  (2,file=bin_file,access='direct',form='unformatted',recl=rec_length,status='old',action='read')
+  enddo
+  close (2)
+enddo
 
-     ! loop over records 
-     do k = 1,nrecs
+close (1)
 
-     if ( i==1 ) then
-     write (1,rec=k) ZRECORD
-     endif
-
-     read  (1,rec=k) TAVG
-     read  (2,rec=k) RECORD
-
-     TAVG = TAVG + frac*RECORD
-
-     write (1,rec=k) TAVG
-
-     enddo
-
-     close (2)
-   enddo
-
-   close (1)
-
-
-   end program
+end program TAVG

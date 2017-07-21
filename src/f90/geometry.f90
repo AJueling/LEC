@@ -17,7 +17,7 @@ implicit none
 !===============================================================================
 
 character*120 :: &
-  input_folder,grid_file,kmt_file,in_depths,pbc_file,geometry1_file,geometry2_file
+  LEC_folder,grid_file,kmt_file,in_depths,pbc_file,geometry1_file,geometry2_file
 
 integer :: imt,jmt,km,rec_length,i,j,k
 integer, dimension(:,:), allocatable :: kmT
@@ -38,14 +38,14 @@ imt            = 3600
 jmt            = 2400
 km             =   42
 
-input_folder   = '/home/dijkbio/andre/LEC/input/'
-grid_file      = trim(input_folder)//'grid.3600x2400.fob.da'
-kmt_file       = trim(input_folder)//'kmt_pbc.p1_tripole.s2.0-og.20060315.no_caspian_or_black'
-in_depths      = trim(input_folder)//'in_depths.42.dat'
-pbc_file       = trim(input_folder)//'dzbc_pbc.p1_tripole.s2.0-og.20060315.no_caspian_or_black'
+LEC_folder     = '/home/dijkbio/andre/LEC/'
+grid_file      = trim(LEC_folder)//'input/grid.3600x2400.fob.da'
+kmt_file       = trim(LEC_folder)//'input/kmt_pbc.p1_tripole.s2.0-og.20060315.no_caspian_or_black'
+in_depths      = trim(LEC_folder)//'input/in_depths.42.dat'
+pbc_file       = trim(LEC_folder)//'input/dzbc_pbc.p1_tripole.s2.0-og.20060315.no_caspian_or_black'
 
-geometry1_file  = trim(input_folder)//'geometry1'
-geometry2_file  = trim(input_folder)//'geometry2'
+geometry1_file = trim(LEC_folder)//'input/geometry1'
+geometry2_file = trim(LEC_folder)//'input/geometry2'
 
 write (*,*) ''
 write (*,*) '--- GEOMETRY ---'
@@ -181,8 +181,8 @@ enddo !k
 
 ! (T)area per level [m^2]
 do k = 1, km
-  area(k) = sum(TAREA/1.0E04,DZT(:,:,k).ne.0) ! [m^2]
-  p_z(k) = pressure(tdepth(k))         ! [bar]
+  area(k) = sum(TAREA,DZT(:,:,k).ne.0.0)/1.0E04 ! [m^2]
+!  p_z(k) = pressure(tdepth(k))                ! [bar]
   !write(*,*) area(k), p_z(k)
 enddo
 
@@ -215,16 +215,20 @@ do k=1,km
   write(1,rec=6+   k) DZT(:,:,k)/1.0E02 ! [m]
   write(1,rec=6+km+k) DZU(:,:,k)/1.0E02 ! [m]
 enddo
+write(1,rec=91) real(HTN/1.0E02) ! [m]
+write(1,rec=92) real(HTE/1.0E02) ! [m]
+write(1,rec=93) real(HUS/1.0E02) ! [m]
+write(1,rec=94) real(HUW/1.0E02) ! [m]
 
 close(1)
 
 ! k, dz, tdepth, area, p, vol
-open(1,file=geometry2_file,access='direct',form='unformatted',recl=6,         &
+open(2,file=geometry2_file,access='direct',form='unformatted',recl=6,         &
        status='unknown')
 do k=1,km
-  write(1,rec=k) real(k),dz(k),tdepth(k),area(k),p_z(k),vol(k)
+!  write(2,rec=k) real(k),dz(k),tdepth(k),area(k),p_z(k),vol(k)
 enddo
-close(1)
+close(2)
 
 !===============================================================================
 !===============================================================================

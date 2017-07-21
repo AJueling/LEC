@@ -87,7 +87,7 @@ end subroutine nabla_hvel
 !===============================================================================
 
 !===============================================================================
-subroutine grad_rho(DZT,DZU,DXU,DYU,TAREA,UAREA,RHO,TT_DRHODX,TT_DRHODY)
+subroutine grad_rho(DZT,DZU,DXU,DYU,TAREA,UAREA,RHO,DRHODX,DRHODY)
 !
 !     calculates gradient components of RHO/PD
 !     as described in POP reference manual
@@ -100,11 +100,12 @@ integer                                     :: i,j,k
 integer, parameter                          :: imt=3600, jmt=2400, km=42
 real,    dimension(imt,jmt),    intent(in)  :: DXU, DYU, TAREA, UAREA ![m]/[m2]
 real,    dimension(imt,jmt,km), intent(in)  :: DZT, DZU, RHO ! [m], [g/cm^3]
-real,    dimension(imt,jmt,km)              :: DRHODX, DRHODY
-real,    dimension(imt,jmt,km), intent(out) :: TT_DRHODX, TT_DRHODY
+!real,    dimension(imt,jmt,km)              :: DRHODX, DRHODY
+!real,    dimension(imt,jmt,km), intent(out) :: TT_DRHODX, TT_DRHODY
+real,    dimension(imt,jmt,km), intent(out) :: DRHODX, DRHODY
 real,    parameter                          :: p5=0.5, c0=0.0
 
-write (*,*) 'grad rho started'
+!write (*,*) 'grad rho started'
 
 !DRHODX = c0
 !DRHODY = c0
@@ -176,10 +177,10 @@ do k = 1,km
 !    enddo !j
 !  enddo !i
 
-  call uu2tt_scalar(DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,               &
-                     DRHODX(:,:,k),TT_DRHODX(:,:,k))
-  call uu2tt_scalar(DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,               &
-                     DRHODY(:,:,k),TT_DRHODY(:,:,k))
+!  call uu2tt_scalar(DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,               &
+!                     DRHODX(:,:,k),TT_DRHODX(:,:,k))
+!  call uu2tt_scalar(DZT(:,:,k),DZU(:,:,k),TAREA,UAREA,               &
+!                     DRHODY(:,:,k),TT_DRHODY(:,:,k))
 
 !  ! Testing
 !  do j = 1,jmt
@@ -225,5 +226,29 @@ do k = 1, km
 enddo !k
 
 end subroutine vert_der
+!===============================================================================
+
+
+!===============================================================================
+subroutine gradient(DXU,DYU,F,GRADX,GRADY)
+implicit none
+!
+!  calculate hydrostatic pressure with in-situ density
+!
+integer                                     :: i,j,k
+integer, parameter                          :: imt=3600, jmt=2400, km=42
+real,    dimension(imt,jmt)   , intent(in)  :: DXU,DYU
+real,    dimension(imt,jmt,km), intent(in)  :: F ! field at T-points
+real,    dimension(imt,jmt,km), intent(out) :: GRADX,GRADY ! at U-points
+real,    parameter                          :: p5 = 0.5
+do k=1,km
+do j=1,jmt
+do i=1,imt
+  GRADX(i,j,k) = p5*(F(i+1,j+1,k) - F(i,j,k) - F(i,j+1,k) + F(i+1,j,k))/DXU(i,j)
+  GRADY(i,j,k) = p5*(F(i+1,j+1,k) - F(i,j,k) + F(i,j+1,k) - F(i+1,j,k))/DYU(i,j)
+enddo !i
+enddo !j
+enddo !k
+end subroutine gradient
 !===============================================================================
 
