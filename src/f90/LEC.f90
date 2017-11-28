@@ -29,7 +29,7 @@ nrec_SWREST, nrec_SSREST, nrec_RUNOFF, nrec_UEU, nrec_VNU, nrec_UEV,        &
 nrec_VNV, nrec_WTU, nrec_WTV, nrec_UET, nrec_VNT, nrec_WTT, nrec_UES,       &
 nrec_VNS, nrec_WTS, nrec_ADVT, nrec_ADVS, nrec_URHO, nrec_VRHO, nrec_WRHO,  &
 nrec_PDW, nrec_UPD, nrec_VPD, nrec_WPD, nrec_T_STRONG_REST,nrec_S_STRONG_REST, &
-nrec_S_WEAK_REST
+nrec_S_WEAK_REST, nrec_PU_x, nrec_PV_y
 ! obsolete: RHO2
 character*120 ::                                                            &
   LEC_folder,geometry1_file,geometry2_file,ref_state_file,projects_folder,  &
@@ -71,7 +71,7 @@ TTT_UEU_eddy_k, TTT_UEV_eddy_k, TTT_VNU_eddy_k, TTT_VNV_eddy_k,             &
 UPD_k, VPD_k, TTT_UPD_k, TTT_VPD_k,                                         &
 UPD_eddy_k, VPD_eddy_k, TTT_UPD_eddy_k, TTT_VPD_eddy_k,                     &
 WUU_WTU_eddy_k,  WUU_WTV_eddy_k, WTT_WTU_eddy_k, WTT_WTV_eddy_k,            &
-geometry2,ref_state
+geometry2,ref_state, SSH, DYUU, DXUV, UPx, VPy
 
 real, dimension(:,:,:), allocatable ::                                      &
 UVEL, VVEL, KE, RHO, Q, RHOU, RHOV, WVEL, UVEL2, VVEL2, UV, UW, VW,         &
@@ -79,14 +79,15 @@ RHOW, PD, PD2, PDU, PDV, rKm, rKe, rPm, rPe, cPem, cKem, cPKm, cPKe, SALT,  &
 TTT_UVEL, TTT_VVEL, TTT_UVEL2, TTT_VVEL2, TTT_UV, TTT_UW, TTT_VW,           &
 DRHODX, DRHODY, DUDX, DUDY, DUDZ, DVDX, DVDY, DVDZ, DPDDX, DPDDY,           &
 TTT_WVEL, TTT_RHOW, TTT_PDW, TEMP, PDW,                                     &
-WUU_WVEL, WTT_WTU_eddy, WTT_WTV_eddy, TTT_WTU_eddy, TTT_WTV_eddy
+WUU_WVEL, WTT_WTU_eddy, WTT_WTV_eddy, TTT_WTU_eddy, TTT_WTV_eddy,           &
+DPDX, DPDY, PU_x, PV_y, HSP
 
 real, dimension(:), allocatable ::                                          &
 z1, z2, rho_ref, salt_ref, temp_ref,                                        &
 pressz, rho_new_ref, pd_new_ref, n0_new
 
 real, dimension(:),     allocatable ::                                      &
-dz,area,tdepth,n0,n0_inv,pd_ref
+dz, area, tdepth, n0, n0_inv, pd_ref
 
 real, dimension(:,:),   allocatable ::                                      &
  DXT, DYT, TAREA, DXU, DYU, UAREA
@@ -237,6 +238,7 @@ nrec_PDV           = 1541
 nrec_UPD           = 1583
 nrec_VPD           = 1625
 nrec_WPD           = 1667
+
 
 !===============================================================================
 !  geometry
@@ -581,7 +583,7 @@ do k = 1,km
   call surf_int_3D(1,1,imt,jmt,cPKe(:,:,k),TAREA,DZT(:,:,k),cPKe_sint(k))
 enddo !k
 
-!  output
+!  output of exchange terms and temperature (for OHC calculations)
 do i = 1,5
   do k = 1,km
     if ( i==1 ) write (3,rec=176+(i-1)*km+k) cPem(:,:,k) 
@@ -616,6 +618,63 @@ write (*,300) 'dPe     =', dPe   , 'W',    dPe/6.80E11
 write (*,300) 'dKm     =', dKm   , 'W',    dKm/1.36E12
 write (*,300) 'dKe     =', dKe   , 'W',    dKe/3.03E12
 
+!  =============================================================================
+!  5. PRESSURE WORK TERMS
+!  =============================================================================
+
+write (*,*) ''
+write (*,*) '5. PRESSURE WORK TERMS'
+
+allocate( HSP(imt,jmt,km),  SSH(imt,jmt),                                      &
+          DYUU(imt,jmt),    DXUV(imt,jmt),                                     &
+          DPDX(imt,jmt,km), DPDY(imt,jmt,km),                                  &
+          PU_x(imt,jmt,km), PV_y(imt,jmt,km),                                  &
+          UPx(imt,jmt),     VPy(imt,jmt) )
+
+! calculate hydrostatic pressure everywhere and its gradient
+call load_2D_field(1,nrec_SSH,SSH)
+call hydrostatic_pressure(g,dz,PD,SSH,HSP)
+call gradient(DXU,DYU,HSP,DPDX,DPDY)
+
+! calculate PU_x = P*U_x + U*P_x and PV_y
+do k=1,km
+
+  UPx(:,:)    = UVEL(:,:,k)*DPDX(:,:,k)*1.0E-02*UAREA(:,:)*DZU(:,:,k)
+  DYUU(:,:)   = DYU(:,:)*DZU(:,:,k)*UVEL(:,:,k)*1.0E-02/dz(k)
+  PU_x(:,:,k) = p5*HSP(:,:,k)/TAREA(:,:)                                       &
+               *(              DYUU(:,:)                                       &
+               +eoshift(       DYUU(:,:),dim=2,shift=-1)                       &
+               -        cshift(DYUU(:,:),dim=1,shift=-1)                       &
+               -eoshift(cshift(DYUU(:,:),dim=1,shift=-1),dim=2,shift=-1))      &
+               +p25/(TAREA(:,:)*dz(k))                                         & 
+               *(             ( UPx(:,:)               )                       &
+               +        cshift( UPx(:,:),dim=1,shift=-1)                       &
+               +eoshift(        UPx(:,:),dim=2,shift=-1)                       &
+               +eoshift(cshift( UPx(:,:),dim=1,shift=-1),dim=2,shift=-1))
+
+  VPy(:,:)    = VVEL(:,:,k)*DPDY(:,:,k)*1.0E-02*UAREA(:,:)*DZU(:,:,k)
+  DXUV(:,:)   = DXU(:,:)*DZU(:,:,k)*VVEL(:,:,k)*1.0E-02/dz(k)
+  PV_y(:,:,k) = p5*HSP(:,:,k)/TAREA(:,:)                                       &
+               *(              DXUV(:,:)                                       &
+               -eoshift(       DXUV(:,:),dim=2,shift=-1)                       &
+               +        cshift(DXUV(:,:),dim=1,shift=-1)                       &
+               -eoshift(cshift(DXUV(:,:),dim=1,shift=-1),dim=2,shift=-1))      &
+               +p25/(TAREA(:,:)*dz(k))                                         &
+               *(             ( VPy(:,:)               )                       &
+               +        cshift( VPy(:,:),dim=1,shift=-1)                       &
+               +eoshift(        VPy(:,:),dim=2,shift=-1)                       &
+               +eoshift(cshift( VPy(:,:),dim=1,shift=-1),dim=2,shift=-1))
+enddo !k
+
+
+
+!  output
+do i = 1,2
+  do k = 1,km
+    if ( i==1 ) write (3,rec=386+(i-1)*km+k) PU_x(:,:,k) 
+    if ( i==2 ) write (3,rec=386+(i-1)*km+k) PV_y(:,:,k) 
+  enddo !k
+enddo !i
 
 !===============================================================================
 !   FILE OUTPUT
