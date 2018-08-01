@@ -1,6 +1,0 @@
-#!/bin/csh -f
-#
-ifort -O3 -convert big_endian -o ref_state_program ref_state.f90
-./ref_state_program
-rm ref_state_program
-echo "All calculations successfully done."

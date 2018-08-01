@@ -1,6 +1,0 @@
-#!/bin/csh -f
-#
-ifort -O3 -convert big_endian -o geometry_program geometry.f90
-./geometry_program
-rm geometry_program
-echo "All calculations successfully done."
