@@ -44,7 +44,7 @@ integer ::                                                                     &
   nrec_HMXL, nrec_XMXL, nrec_TMXL
 
 character*120 ::&
-grid_file,kmt_file,in_depths,pbc_file,geometry1_file,geometry2_file
+grid_file,kmt_file,in_depths,pbc_file,geometry1_file,geometry2_file,input_folder
 character*38  :: LEC_file
 character*58  :: bin_file
 character*3   :: year, yr
@@ -75,7 +75,7 @@ real,             dimension(:,:),   allocatable ::                             &
 real,             dimension(:,:,:), allocatable ::                             &
   DZT, DZU, cPKm, cPKe, rPm, rPe, rKm, rKe, VVEL, WVEL, TTT_VVEL,              &
   cPKm_yrly, cPKe_yrly, vrPm_yrly, vrPe_yrly, vrKm_yrly, vrKe_yrly,            &
-  Psi_v_yrly, Psi_w_yrly, HMXL_yrly, XMXL_yrly, TMXL_yrly
+  Psi_v_yrly, Psi_w_yrly, HMXL_yrly, XMXL_yrly, TMXL_yrly, FBC
 
 double precision, parameter ::                                                 &
 c0 = 0., p125 = 0.125, p25 = 0.25, p5 = 0.5, c1 = 1.,                          &
@@ -106,10 +106,10 @@ geometry2_file  = trim(input_folder)//'geometry2'
 ! read geometry fields
 allocate( DXT(imt,jmt), DYT(imt,jmt), TAREA(imt,jmt), DZT(imt,jmt,km),         &
           DXU(imt,jmt), DYU(imt,jmt), UAREA(imt,jmt), DZU(imt,jmt,km),         &
-          dz(km),       area(km),     ref_state(15,km) )
-open(1,file=geometry_file,access='direct',form='unformatted',recl=imt*jmt,     &
+          dz(km),       area(km),     ref_state(6,km), FBC(imt,jmt,km) )
+open(1,file=geometry1_file,access='direct',form='unformatted',recl=imt*jmt,     &
        status='old')
-open(2,file=ref_state_file,access='direct',form='unformatted',recl=15,         &
+open(2,file=geometry2_file,access='direct',form='unformatted',recl=6,         &
        status='old')
 ! k, dz, tdepth, area, p,
 ! <T>, <S>, <RHO>, <PD>, <D(D,T,0)>, <D(D,T,p)>, <Q>,
@@ -121,17 +121,18 @@ read(1,rec=4) DYU ! [m]
 read(1,rec=5) TAREA ! [m^2]
 read(1,rec=6) UAREA ! [m^2]
 do k=1,km
+  write (*,*) k
   read(1,rec=6+   k) DZT(:,:,k) ! [m]
   read(1,rec=6+km+k) DZU(:,:,k) ! [m]
   read(2,rec=k)      ref_state(:,k) ! [varying]
   dz(k)            = ref_state(2,k) ! [m]
   area(k)          = ref_state(4,k) ! [m^2]
+  FBC(:,:,k)       = dz(k)
 enddo
+write (*,*) 'done'
+
 close(1)
 close(2)
-
-read  (*,'(a58)')  bin_file
-read  (*,'(a38)')  LEC_file
 
 nrec_rPm  =    1
 nrec_rPe  =   43
@@ -151,6 +152,7 @@ nrec_cPKm =  261
 nrec_cPKe =  303
 
 nrec_VVEL =   43
+nrec_WVEL =  405
 
 !===============================================================================
 !  CALCULATIONS
@@ -158,6 +160,8 @@ nrec_VVEL =   43
 
 write (*,*) ''
 write (*,*) 'CALCULATIONS'
+write (*,*) opt1,opt3
+
 
 ! years
 if ( ntavg==1 ) then
@@ -186,10 +190,10 @@ if ( opt1==1 ) then
          form='unformatted',access='direct',recl=jmt)
   open(12,file='/projects/0/samoc/jan/Andree/cPKe_zint_'//trim(yr),            &
          form='unformatted',access='direct',recl=jmt)
-  open(25,file='/projects/0/samoc/jan/Andree/cPKm_rsum_'//trim(yr),            &
-         form='unformatted',access='direct',recl=jmt)
-  open(26,file='/projects/0/samoc/jan/Andree/cPKe_rsum_'//trim(yr),            &
-         form='unformatted',access='direct',recl=jmt)
+!  open(25,file='/projects/0/samoc/jan/Andree/cPKm_rsum_'//trim(yr),            &
+!         form='unformatted',access='direct',recl=jmt)
+!  open(26,file='/projects/0/samoc/jan/Andree/cPKe_rsum_'//trim(yr),            &
+!         form='unformatted',access='direct',recl=jmt)
 endif
 if ( opt3==1 ) then
   write(*,*) 'option 3: meridional advection of energy reservoirs'
@@ -209,14 +213,14 @@ if ( opt3==1 ) then
          form='unformatted',access='direct',recl=jmt)
   open(16,file='/projects/0/samoc/jan/Andree/vrKe_zint_'//trim(yr),            &
          form='unformatted',access='direct',recl=jmt)
-  open(27,file='/projects/0/samoc/jan/Andree/vrPm_rsum_'//trim(yr),            &
-         form='unformatted',access='direct',recl=jmt)
-  open(28,file='/projects/0/samoc/jan/Andree/vrPe_rsum_'//trim(yr),            &
-         form='unformatted',access='direct',recl=jmt)
-  open(29,file='/projects/0/samoc/jan/Andree/vrKm_rsum_'//trim(yr),            &
-         form='unformatted',access='direct',recl=jmt)
-  open(30,file='/projects/0/samoc/jan/Andree/vrKe_rsum_'//trim(yr),            &
-         form='unformatted',access='direct',recl=jmt)
+!  open(27,file='/projects/0/samoc/jan/Andree/vrPm_rsum_'//trim(yr),            &
+!         form='unformatted',access='direct',recl=jmt)
+!  open(28,file='/projects/0/samoc/jan/Andree/vrPe_rsum_'//trim(yr),            &
+!         form='unformatted',access='direct',recl=jmt)
+!  open(29,file='/projects/0/samoc/jan/Andree/vrKm_rsum_'//trim(yr),            &
+!         form='unformatted',access='direct',recl=jmt)
+!  open(30,file='/projects/0/samoc/jan/Andree/vrKe_rsum_'//trim(yr),            &
+!         form='unformatted',access='direct',recl=jmt)
 endif
 
 
@@ -224,19 +228,21 @@ do y = start_year, end_year
 
   ! open file
   write(year,"(I3)") y
-  filename1 = bin_file//year       ! original binary POP output file
-  filename2 = LEC_file//'_'//year  ! LEC.f90 output file
+  filename1 = '/projects/0/samoc/jan/Andree/t.t0.1_42l_nccs01.tavg.5year.'//year       ! original binary POP output file
+  filename2 = '/projects/0/samoc/jan/Andree/LEC_bin_5_'//year  ! LEC.f90 output file
   !write (*,*) filename1
   !write (*,*) filename2
-  open (1,file=filename1,access='direct',form='unformatted',recl=imt*jmt,      &
+  write (*,*) filename1, filename2
+  open (1,file=trim(filename1),access='direct',form='unformatted',recl=imt*jmt,      &
         status='unknown')
-  open (2,file=filename2,access='direct',form='unformatted',recl=imt*jmt,      &
+  open (2,file=trim(filename2),access='direct',form='unformatted',recl=imt*jmt,      &
         status='unknown')
 
   ! loading VVEL, WVEL, TTT_VVEL
-  allocate( VVEL(imt,jmt,km),   WVEL(imt,jmt,km), TTT_VVEL(imt,jmt,km) )
+  allocate( VVEL(imt,jmt,km), TTT_VVEL(imt,jmt,km) )
+  
   call load_3D_field(1,nrec_VVEL,VVEL)
-  call load_3D_field(1,nrec_WVEL,WVEL)
+  !call load_3D_field(1,nrec_WVEL,WVEL)
   call uu2tt_3D(DZT,DZU,TAREA,UAREA,VVEL,TTT_VVEL)
   !=============================================================================
   !  1. cPKm/cPKe
@@ -253,8 +259,8 @@ do y = start_year, end_year
     call load_3D_field(2,nrec_cPKe,cPKe)
   
     !vertical integral
-    call vert_int(cPKm,DZT,cPKm_vint)
-    call vert_int(cPKe,DZT,cPKe_vint)
+    call vert_int(cPKm,FBC,cPKm_vint)
+    call vert_int(cPKe,FBC,cPKe_vint)
   
     ! zonal-depth integral
     call zonal_int(DXT,cPKm_vint,cPKm_zint)
@@ -263,7 +269,7 @@ do y = start_year, end_year
     ! write into interal fields cPKm_vint
     write ( 3,rec=y-start_year+1) cPKm_vint(:,:)
     write ( 4,rec=y-start_year+1) cPKe_vint(:,:)
-    write(*,*) 'option 1e'
+    write(*,*) 'option 1'
     write (11,rec=y-start_year+1) cPKm_zint(:)
     write (12,rec=y-start_year+1) cPKe_zint(:)
 
@@ -291,15 +297,15 @@ do y = start_year, end_year
     call load_3D_field(2,nrec_rKm, rKm )
     call load_3D_field(2,nrec_rKe, rKE )
 
-    call vol_int(1,1,1,imt,jmt,km,rPm,TAREA,DZT,rPm_int)
-    call vol_int(1,1,1,imt,jmt,km,rPe,TAREA,DZT,rPe_int)
-    call vol_int(1,1,1,imt,jmt,km,rKm,TAREA,DZT,rKm_int)
-    call vol_int(1,1,1,imt,jmt,km,rKe,TAREA,DZT,rKe_int)
+    call vol_int_full(1,1,1,imt,jmt,km,rPm,TAREA,dz,DZT,rPm_int)
+    call vol_int_full(1,1,1,imt,jmt,km,rPe,TAREA,dz,DZT,rPe_int)
+    call vol_int_part(1,1,1,imt,jmt,km,rKm,TAREA,dz,DZT,rKm_int)
+    call vol_int_part(1,1,1,imt,jmt,km,rKe,TAREA,dz,DZT,rKe_int)
     write (*,*) rPm_int, rPe_int, rKm_int, rKe_int
   
     ! calculate vertically integrated, meridional advection
-    call mer_advection(DXT,DZT,TTT_VVEL,rPm,vrPm_vint)
-    call mer_advection(DXT,DZT,TTT_VVEL,rPe,vrPe_vint)
+    call mer_advection(DXT,FBC,TTT_VVEL,rPm,vrPm_vint)
+    call mer_advection(DXT,FBC,TTT_VVEL,rPe,vrPe_vint)
     call mer_advection(DXT,DZT,TTT_VVEL,rKm,vrKm_vint)
     call mer_advection(DXT,DZT,TTT_VVEL,rKe,vrKe_vint)
 
@@ -322,7 +328,8 @@ do y = start_year, end_year
     deallocate( rPm,       rPe,       rKm,       rKe,                          &
                 vrPm_vint, vrPe_vint, vrKm_vint, vrKe_vint,                    &
                 vrPm_zint, vrPe_zint, vrKm_zint, vrKe_zint,                    &
-                vrPm_rsum, vrPe_rsum, vrKm_rsum, vrKe_rsum )
+                vrPm_rsum, vrPe_rsum, vrKm_rsum, vrKe_rsum,                    &
+                VVEL, TTT_VVEL )
 
   endif
   
@@ -361,8 +368,8 @@ if ( opt1==1 ) then
   close( 4)
   close(11)
   close(12)
-  close(25)
-  close(26)
+!  close(25)
+!  close(26)
 endif
 
 
@@ -412,10 +419,10 @@ if (opt3==1 ) then
   close(14)
   close(15)
   close(16)
-  close(27)
-  close(28)
-  close(29)
-  close(30)
+!  close(27)
+!  close(28)
+!  close(29)
+!  close(30)
 endif
 
 
@@ -428,36 +435,36 @@ contains
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-subroutine rsum(imt,jmt,km,DXT,DYT,DZT,FIELD,rsum)
-implicit none
+!subroutine rsum(imt,jmt,km,DXT,DYT,DZT,FIELD,rsum)
+!implicit none
 !
 !  calculates running sum
 !
 
-integer, intent(in)  :: imt,jmt,km,opt
-integer                                     :: j
-real,    dimension(imt,jmt,km), intent(in)  :: DZT
-if ( opt==1) then
-  real,  dimension(imt,jmt,km), intent(in)  :: FIELD
-elseif ( opt==2 ) then
-  real,  dimension(imt,jmt),    intent(in)  :: FIELD
-endif
-real,    dimension(jmt),        intent(out) :: rsum
-real,    dimension(imt,jmt),    intent(in)  :: DXT,DYT
+!integer, intent(in)  :: imt,jmt,km,opt
+!integer                                     :: j
+!real,    dimension(imt,jmt,km), intent(in)  :: DZT
+!if ( opt==1) then
+!  real,  dimension(imt,jmt,km), intent(in)  :: FIELD
+!elseif ( opt==2 ) then
+!  real,  dimension(imt,jmt),    intent(in)  :: FIELD
+!endif
+!real,    dimension(jmt),        intent(out) :: rsum
+!real,    dimension(imt,jmt),    intent(in)  :: DXT,DYT
+!
+!if ( opt==1 ) then
+!  rsum(:) = sum(sum(FIELD(:,:,:)*DZT(:,:,:),3)*DXT(:,:)*DYT(:,:),1)
+!  do j=2,jmt
+!    rsum(j) = rsum(j) + rsum(j-1)
+!  enddo
+!elseif ( opt==2 ) then
+!  rsum(:) = sum(FIELD(:,:)*DXT(:,:)*DYT(:,:),1)
+!  do j=2,jmt
+!    rsum(j) = rsum(j) + rsum(j-1)
+!  enddo
+!endif
 
-if ( opt==1 ) then
-  rsum(:) = sum(sum(FIELD(:,:,:)*DZT(:,:,:),3)*DXT(:,:)*DYT(:,:),1)
-  do j=2,jmt
-    rsum(j) = rsum(j) + rsum(j-1)
-  enddo
-elseif ( opt==2 ) then
-  rsum(:) = sum(FIELD(:,:)*DXT(:,:)*DYT(:,:),1)
-  do j=2,jmt
-    rsum(j) = rsum(j) + rsum(j-1)
-  enddo
-endif
-
-end subroutine rsum
+!end subroutine rsum
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 

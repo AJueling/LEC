@@ -1,6 +1,0 @@
-#!/bin/csh -f
-#
-
-ifort -O3 -convert big_endian -o mer_adv_program mer_adv.f90
-./mer_adv_program
-rm mer_adv_program

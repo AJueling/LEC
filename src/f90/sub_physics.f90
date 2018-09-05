@@ -1,5 +1,5 @@
 !===============================================================================
-function pressure(depth)
+function pressure(depth) result(press)
 
 ! !DESCRIPTION:
 !  This function computes pressure in bars from depth in meters
@@ -30,7 +30,7 @@ real, intent(in) :: depth    ! depth in meters
 
 ! !OUTPUT PARAMETERS:
 
-real :: pressure   ! pressure [bars]
+real :: press   ! pressure [bars]
 
 ! !LOCAL PARAMETERS:
 !  adjustment from original code which was written as 0.1_r8
@@ -47,7 +47,9 @@ double precision, parameter ::              &
 !  convert depth in meters to pressure in bars
 !-----------------------------------------------------------------------
 
-pressure = pc1*(exp(-pc2*depth) - c1) + pc3*depth + pc4*depth**2
+press = pc1*(exp(-pc2*depth) - c1) + pc3*depth + pc4*depth**2
+
+!return
 
 end function pressure
 !===============================================================================
@@ -82,7 +84,6 @@ double precision, parameter :: rho0=4.1/3.996*1000
 ! !INPUT PARAMETERS:
 
 double precision, intent(in) :: &
-!real, intent(in) :: & 
   T,               &! pot. temperature at level k  [degC]
   S_orig,          &! salinity at level k         [kg/kg]
   P_orig            ! pressure at reference level   [bar]
@@ -91,7 +92,6 @@ double precision, intent(in) :: &
 ! !OUTPUT PARAMETERS:
 
 double precision, intent(out) :: &
-!real, intent(out) :: &
   RHO               ! density of water [kg m^-3]
 
 !-----------------------------------------------------------------------
@@ -122,8 +122,6 @@ double precision, parameter :: &
 !*** these constants will be used to construct the numerator
 
 double precision, parameter ::   &
-!real, parameter ::
-!&
   mwjfnp0s0t0 =   9.99843699e+2, &
   mwjfnp0s0t1 =   7.35212840e+0, &
   mwjfnp0s0t2 =  -5.45928211e-2, &
@@ -140,8 +138,6 @@ double precision, parameter ::   &
 !*** these constants will be used to construct the denominator
 
 double precision, parameter ::    &
-!real, parameter ::
-!&
   mwjfdp0s0t0 =   1.0e+0,         &
   mwjfdp0s0t1 =   7.28606739e-3,  &
   mwjfdp0s0t2 =  -4.60835542e-5,  &
@@ -158,9 +154,7 @@ double precision, parameter ::    &
 
 !*** MWJF numerator coefficients including pressure
 
-double precision ::
-&
-!real ::                                                     &
+double precision ::&
   mwjfnums0t0, mwjfnums0t1, mwjfnums0t2, mwjfnums0t3,                          &
   mwjfnums1t0, mwjfnums1t1, mwjfnums2t0,                                       &
   mwjfdens0t0, mwjfdens0t1, mwjfdens0t2, mwjfdens0t3, mwjfdens0t4,             &
@@ -225,4 +219,27 @@ RHO   = WORK1/WORK2-rho0
 end subroutine state
 !===============================================================================
 
+subroutine hydrostatic_pressure(g,dz,RHO,SSH,HSP)
+implicit none
+!
+!  calculate hydrostatic pressure with in-situ density
+!
+integer                                     :: k
+integer, parameter                          :: imt=3600, jmt=2400, km=42
+double precision,               intent(in)  :: g
+real,    dimension(km),         intent(in)  :: dz
+real,    dimension(imt,jmt,km), intent(in)  :: RHO
+real,    dimension(imt,jmt),    intent(in)  :: SSH
+real,    dimension(imt,jmt,km), intent(out) :: HSP
+real,    parameter                          :: p5 = 0.5
+
+do k=1,km
+  if (k==1) then
+    HSP(:,:,k) = g*(RHO(:,:,k)*1.0E3)*(dz(k)/2.0 + SSH(:,:)*1.0E-02)
+  else
+    HSP(:,:,k) = HSP(:,:,k-1) + p5*g*((RHO(:,:,k-1)+RHO(:,:,k))*1.0E03)&
+                                 *(dz(k-1)+dz(k))/2.0
+  endif
+enddo !k
+end subroutine hydrostatic_pressure
 

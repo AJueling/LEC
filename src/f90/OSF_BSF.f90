@@ -48,7 +48,7 @@ real, dimension(:,:),   allocatable ::                                         &
 real, dimension(:,:,:), allocatable ::                                         &
   DZT,DZU,UVEL,VVEL,OSF_v_year,BSF_year
 double precision, parameter         ::                                         &
-c0 = 0., p125 = 0.125, p25 = 0.25, p5 = 0.5, c1 = 1.
+  c0 = 0., p125 = 0.125, p25 = 0.25, p5 = 0.5, c1 = 1.
 
 imt        = 3600
 jmt        = 2400
