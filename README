@@ -2,25 +2,51 @@ Project Lorenz Energy Cycle (LEC)
 
 by Andr\'e J\"uling, July 2018
 
-Calculates and analyzes Lorenz Energy Cycle (LEC) of Parallel Ocean Program 
+Calculates and analyses Lorenz Energy Cycle (LEC) of Parallel Ocean Program 
 (POP) model run that showed OHC oscillations in the Southern Ocean 
 (Le Bars, GRL 2016).
 
-In addition other quantities are analyzed, such as 
+In addition other quantities are analysed, such as 
   (a) the barotropic and overturning stream functions,
   (b) the mixed layer depths,
   (c) ocean heat content.
 
 The workflow for the LEC calculation is as follows:
+
   (1) set up POP to write out required fields
+
   (2) calculate geometry files
+
   (3) run POP
+
   (4) calculate desired temporal averages (in our case: 5 years) as well as a 
-      full run average (51 years = one SOM cycle, in our case)
-  (5) run LEC.f90 to calculate all LEC terms plus kinetic energy advection
-      output is stored as 3D binary files and global integrals as text files
-  (6) perform regional/phase integrals
-      output is stored as text files
+      full run average (in our case: 51 years = one SOM cycle) [TAVG.f90]
+
+  (5) analyse output:
+      (a) [LEC.f90]
+          to calculate all LEC terms plus kinetic energy advection;
+          output is stored as 3D binary files and global integrals as text files
+      (b) [analyze_LEC.f90]
+          perform regional/phase integrals;
+          output is stored as text files
+      (c) [OSF_BSF.f90]
+          calculates overturning and barotropic streamfunctions
+      (d) [MXL.f90]
+          calculates max MLD
+      (e) 
+          calculates TMP anomaly
+
+  (6) make plots
+      (a) [.py]
+          time series
+          Figure  1: overturning/barotropic streamfunction, SOM index, max MLD
+          Figure 10: LEC components
+      (b) [.py]
+          Figure 2: map of max MLD, depth-time temperature anomaly
+      (c) [.py]
+          Figure 3: energy flow box plots
+      (c) [.py]
+          Figures 4-9: polar maps of LEC components
 
 ================================================================================
 /src
