@@ -1,16 +1,35 @@
 Project Lorenz Energy Cycle (LEC)
 
-Analyzes LEC of POP model run that showed OHC oscillations in Southern Ocean (Le Bars, GRL 2016). In addition other quantities are analyzed, such as the barotropic and overturning stream functions, the mixed layer depths, meridional advection of energy,...
+by Andr\'e J\"uling, July 2018
 
-January 2017
+Calculates and analyzes Lorenz Energy Cycle (LEC) of Parallel Ocean Program 
+(POP) model run that showed OHC oscillations in the Southern Ocean 
+(Le Bars, GRL 2016).
+
+In addition other quantities are analyzed, such as 
+  (a) the barotropic and overturning stream functions,
+  (b) the mixed layer depths,
+  (c) ocean heat content.
+
+The workflow for the LEC calculation is as follows:
+  (1) set up POP to write out required fields
+  (2) calculate geometry files
+  (3) run POP
+  (4) calculate desired temporal averages (in our case: 5 years) as well as a 
+      full run average (51 years = one SOM cycle, in our case)
+  (5) run LEC.f90 to calculate all LEC terms plus kinetic energy advection
+      output is stored as 3D binary files and global integrals as text files
+  (6) perform regional/phase integrals
+      output is stored as text files
 
 ================================================================================
 /src
 ================================================================================
 subfolders according to file types:
-f90: "*.f90" (Fortran) for all computations and writing output
-do:  "do_*"  (cshell)  to compile Fortran programs
-run: "run_*" (bash)    to run do scripts in parallel via sbatch
+f90: "*.f90"        (Fortran) for all computations and writing output
+do:  "do_*"         (cshell)  to compile Fortran programs
+run: "run_*"        (bash)    to run do scripts in parallel via sbatch
+py:  "*.py/*.ipynb" (python)  scripts and notebooks to analyse and plot results
 
 ================================================================================
 /scr/f90: Programs
@@ -24,11 +43,13 @@ TAVG.f90
 geometry.f90
 - does geometrical calculations from model files
 - subroutine files needed:
-- ouput: real binary files: (1) (imt,jmt,4+2*km) , (2) (6,km) depth dependent quantities
+- output: real binary files: (1) (imt,jmt,4+2*km) , 
+                             (2) (6,km) depth dependent quantities
 
 ref_state.f90
 - creates reference background state from 51 year average file
-- subroutine files needed: load_3D_field (5), state (6), area_avg(3), area_avg_weighted(3), vert_der(2)
+- subroutine files needed:
+    load_3D_field (5), state (6), area_avg(3), area_avg_weighted(3), vert_der(2)
 - output: unformatted binary file '/input/ref_state' with these quantities:
           ! k, dz, tdepth, area, p,
           ! <T>, <S>, <RHO>, <PD>, <D(D,T,0)>, <D(D,T,p)>, <Q>,
@@ -122,12 +143,3 @@ in /projects/0/samoc/jan/Andree:
 /MXL
 /Psi
 /n0_RHO
-
-
-
-
-
-
-
-
-
