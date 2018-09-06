@@ -6,6 +6,7 @@ subroutine vol_int_part(imin,jmin,kmin,imax,jmax,kmax,FIELD,AREA,dz,DZ_3D,INTEGR
 implicit none
 
 ! input/output variables
+integer                                     :: i,j,k
 integer, parameter                          :: imt=3600,jmt=2400,km=42
 integer,                        intent(in)  :: imin,jmin,kmin,imax,jmax,kmax
 real,    dimension(km),         intent(in)  :: dz
@@ -151,7 +152,7 @@ real,    dimension(km),         intent(in)  :: vol
 real,    dimension(km),         intent(out) :: w_avg
 
 do k=1,km
-  w_avg(k) = sum(FIELD(:,:,k)*AREA(:,:)*DZT(:,:,k),DZT(:,:,k).ne.0.0)/vol(k)
+  w_avg(k) = sum(FIELD(:,:,k)*AREA(imt,jmt)*DZT(:,:,k),DZT(:,:,k).ne.0.0)/vol(k)
 enddo
 
 end subroutine area_avg_weighted

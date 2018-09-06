@@ -1,4 +1,8 @@
 .DS_Store
 src/.DS_Store
+<<<<<<< HEAD
 src/jan
 results/
+=======
+src/jan
+>>>>>>> d03956a58ca22cc2d4afb011e50dea867424d7fd
