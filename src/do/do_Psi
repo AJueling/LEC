@@ -1,6 +1,0 @@
-#!/bin/csh -f
-#
-
-ifort -O3 -convert big_endian -o Psi_program Psi.f90
-./Psi_program
-rm Psi_program
