@@ -1,0 +1,130 @@
+&GLOBAL                                                                         
+title:char: POP TAVG file                                                       
+history:char: POP TAVG file created: 20110318 033503.853                        
+conventionchar: POP TAVG conventions                                            
+beg_date:char: 00751201                                                         
+nsteps_total:int:      5020940                                                  
+iyear:int:           76                                                         
+imonth:int:            1                                                        
+iday:int:            1                                                          
+tavg_sum:r8:    2678399.999999959                                               
+tday:r8:    27740.00000000000                                                   
+&UVEL
+long_name:char:Velocity in grid-x direction
+units:char:centimeter/s
+grid_loc:char:3221
+id:int:            1
+nfield_dims:int:            3
+/
+&VVEL
+long_name:char:Velocity in grid-y direction
+units:char:centimeter/s
+grid_loc:char:3221
+id:int:           43
+nfield_dims:int:            3
+/
+&KE
+long_name:char:Horizontal Kinetic Energy
+units:char:centimeter^2/s^2
+grid_loc:char:3221
+id:int:           85
+nfield_dims:int:            3
+/
+&TEMP
+long_name:char:Potential Temperature
+units:char:degC
+grid_loc:char:3111
+id:int:          127
+nfield_dims:int:            3
+/
+&SALT
+long_name:char:Salinity
+units:char:gram/kilogram
+grid_loc:char:3111
+id:int:          169
+nfield_dims:int:            3
+/
+&SSH
+long_name:char:Sea Surface Height
+units:char:centimeter
+grid_loc:char:2110
+id:int:          211
+nfield_dims:int:            2
+/
+&H2
+long_name:char:SSH**2
+units:char:cm^2
+grid_loc:char:2110
+id:int:          212
+nfield_dims:int:            2
+/
+&SHF
+long_name:char:Total Surface Heat Flux, Including SW
+units:char:watt/m^2
+grid_loc:char:2110
+id:int:          213
+nfield_dims:int:            2
+/
+&SFWF
+long_name:char:Virtual Salt Flux in FW Flux formulation
+units:char:kg/m^2/s
+grid_loc:char:2110
+id:int:          214
+nfield_dims:int:            2
+/
+&TAUX
+long_name:char:Windstress in grid-x direction
+units:char:dyne/centimeter^2
+grid_loc:char:2220
+id:int:          215
+nfield_dims:int:            2
+/
+&TAUY
+long_name:char:Windstress in grid-y direction
+units:char:dyne/centimeter^2
+grid_loc:char:2220
+id:int:          216
+nfield_dims:int:            2
+/
+&UET
+long_name:char:Flux of Heat in grid-x direction
+units:char:degC/s
+grid_loc:char:3211
+id:int:          217
+nfield_dims:int:            3
+/
+&VNT
+long_name:char:Flux of Heat in grid-y direction
+units:char:degC/s
+grid_loc:char:3121
+id:int:          259
+nfield_dims:int:            3
+/
+&PD
+long_name:char:Potential Density Ref to Surface
+units:char:gram/centimeter^3
+grid_loc:char:3111
+id:int:          301
+nfield_dims:int:            3
+/
+&HMXL
+long_name:char:Mixed-Layer Depth
+units:char:centimeter
+grid_loc:char:2110
+id:int:          343
+nfield_dims:int:            2
+/
+&XMXL
+long_name:char:Maximum Mixed-Layer Depth
+units:char:centimeter
+grid_loc:char:2110
+id:int:          344
+nfield_dims:int:            2
+/
+&TMXL
+long_name:char:Minimum Mixed-Layer Depth
+units:char:centimeter
+grid_loc:char:2110
+id:int:          345
+nfield_dims:int:            2
+/
