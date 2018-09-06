@@ -38,6 +38,7 @@ LEC.f90
 - calculates all LEC terms
 - subroutine files needed:
 - output: total/level terms, binary with LEC terms as 2D/3D fields
+- takes about 3:20 mins to run for one file
 
 LEC_ff.f90
 - like LEC.f90 but flux formulation instead of product formulation
@@ -46,6 +47,7 @@ analyze_LEC.f90
 - surface/volume integrals over specific areas
 - subroutine files needed:
 - output: text files for each year with specific area/volume integrals of LEC terms
+- takes a little less than 40 sec
 
 OSF_BSF.f90
 - overturning stream function and barotropic stream function
@@ -54,6 +56,8 @@ OSF_BSF.f90
 - output: (3,nt=251)       year,BSF drake, BSF Weddell gyre
           (imt,jmt,nt=251) yearly BSF fields, mean & std fields of last 51 years
           (jmt, km,nt=251) yearly OSF fields, mean & std fields of last 51 years
+          in '/projects/0/samoc/jan/Andree/'//'OSF/' and //'BSF/' 
+- uses run file and takes somewhat less than 7 hours
 
 MXL.f90
 - mixed layer depths (HMXL: mean, XMXL: maximum, TMXL: minimum)
@@ -67,6 +71,27 @@ mer_adv.f90
 int_test.f90
 - tests different integration methods
 - subroutine files needed:
+- output:
+- takes about 30 sec
+
+
+WVEL_test.f90
+- tests whether the surface integrals of WVEL are 0
+- output: 3 files for monthly, 5yr, and 51 yr average file with
+          k, WVEL_sint(k), WVEL_sint_abs(k), TTT_WVEL_sint(k), TTT_WVEL_sint_abs(k)
+          in 'results/WVEL_test/'
+- takes 30 sec
+
+OHC_adv.f90
+- calculates heat advection across lon/lat stretches; for now along the
+  boundaries of a box around the Weddell sinking region [-78S,-60S]x[35W,80E]
+- output: /results/OHC_adv/
+  - (imin:imax/jmin:jmax,km,nt=251yrs) 2D sections of heat transport across a 
+    vertical plane along lat/lon
+  - (imin:imax,nt) vertically integrated heat transport
+  - (km,nt) zonally/meridionally integrated heat transport
+- takes about 10 sec/month so in total 8.3 hours
+
 
 ================================================================================
 /scr/f90: Subroutines
