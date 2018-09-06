@@ -1,0 +1,9 @@
+#!/bin/csh -f
+#
+
+ifort -O3 -convert big_endian -o rKm_budget_program ../f90/rKm_budget.f90 ../f90/sub_integrals.f90 ../f90/sub_interpolation.f90 ../f90/sub_model.f90 ../f90/sub_physics.f90  ../f90/sub_derivatives.f90
+
+
+./rKm_budget_program 
+
+rm rKm_budget_program

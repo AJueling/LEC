@@ -1,0 +1,36 @@
+#!/bin/csh -f
+#
+# This script calculated the Energy budget terms for POP model output.
+# It can average multiple monthly average output files to create e.g. yearly averages.
+# This script is adapted from the Atlantic salt budget time series script.
+# 
+
+# -----------------------------------
+#  User can change parameters below
+# -----------------------------------
+
+set ntavg     = $argv[1]  # time average to be used; 1, 5, or 11 years
+set year      = $argv[2]  # year
+
+ifort -O3 -mcmodel=large -convert big_endian -o LEC_$ntavg$year ../f90/LEC.f90 ../f90/sub_derivatives.f90 ../f90/sub_integrals.f90 ../f90/sub_interpolation.f90 ../f90/sub_model.f90 ../f90/sub_physics.f90
+
+# timeseries info
+# (data for extravars-case only exists for 026903-027001 at the moment;
+# the file that contains a certain month is written on the 1st day of the next month;
+# so the month in inputfilename is always 1 month up front
+# e.g. t.t0.1_42l_nccs01.012002 contains January year 120;
+# this means data is available for 02-269 to 12-269)
+
+# record numbers in tavg file
+# (CAUTION: these vary between experiments)
+# (the following values are for the run_henk_mixedbc_extravars case)
+
+echo "$ntavg" > in_list_$ntavg$year
+echo "$year"  >> in_list_$ntavg$year
+
+./LEC_$ntavg$year < in_list_$ntavg$year
+
+rm LEC_$ntavg$year
+rm in_list_$ntavg$year
+ 
+echo "All calculations successfully done."

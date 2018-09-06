@@ -1,0 +1,8 @@
+#!/bin/csh -f
+#
+
+ifort -O3 -convert big_endian -o MOC_program ../f90/MOC_34.5S.f90
+
+./MOC_program 
+
+rm MOC_program

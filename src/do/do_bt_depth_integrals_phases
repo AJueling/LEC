@@ -1,0 +1,13 @@
+#!/bin/csh -f
+#
+# This script compiles bt_depth_integrals_phases.f90 which calculates LEC quantities .
+# 
+
+
+ifort -O3 -convert big_endian -o bt_depth_integrals_phases ../f90/bt_depth_integrals_phases.f90 ../f90/sub_integrals.f90 ../f90/sub_model.f90
+
+./bt_depth_integrals_phases
+
+rm bt_depth_integrals_phases
+ 
+echo "All calculations successfully done."

@@ -1,0 +1,21 @@
+#!/bin/csh -f
+#
+# This script compiles analyze analyze_LEC.f90 which calculates LEC quantities .
+# 
+
+set ntavg     = $argv[1]
+set year      = $argv[2]
+set inputfile = "/projects/0/samoc/jan/Andree/LEC_bin_$ntavg"_"$year"
+
+ifort -O3 -convert big_endian -o analyze_LEC_$year ../f90/analyze_LEC.f90 ../f90/sub_integrals.f90 ../f90/sub_model.f90
+
+echo "$inputfile"  >> in_list_$year
+echo "$year"       >> in_list_$year
+echo "$ntavg"      >> in_list_$year
+
+./analyze_LEC_$year < in_list_$year
+
+rm analyze_LEC_$year
+rm in_list_$year
+ 
+echo "All calculations successfully done."

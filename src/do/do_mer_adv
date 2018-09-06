@@ -1,0 +1,6 @@
+#!/bin/csh -f
+#
+
+ifort -O3 -convert big_endian -o mer_adv_program ../f90/mer_adv.f90 ../f90/sub_calculations.f90 ../f90/sub_integrals.f90 ../f90/sub_interpolation.f90 ../f90/sub_model.f90
+./mer_adv_program
+rm mer_adv_program

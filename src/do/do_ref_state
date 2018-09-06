@@ -1,0 +1,6 @@
+#!/bin/csh -f
+#
+ifort -mcmodel medium -shared-intel -O3 -convert big_endian -o ref_state_program ../f90/ref_state.f90 ../f90/sub_integrals.f90 ../f90/sub_derivatives.f90 ../f90/sub_model.f90 ../f90/sub_physics.f90
+./ref_state_program
+rm ref_state_program
+echo "All calculations successfully done."

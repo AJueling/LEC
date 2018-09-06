@@ -1,0 +1,6 @@
+#!/bin/csh -f
+#
+
+ifort -O3 -convert big_endian -o OSF_BSF_program ../f90/OSF_BSF.f90
+./OSF_BSF_program
+rm OSF_BSF_program

@@ -1,0 +1,9 @@
+#!/bin/csh -f
+# This script executes a Fortran file that calculates the temperature/salinity/density for every depth level in the WGKP region with the aim of investigating the convection process observed during the SOM.
+# This script averages multiple monthly average output files to create e.g. yearly averages.
+# This script is heavily adapted from the Atlantic salt budget time series script.
+# 
+ifort -O3 -convert big_endian -o WGKP_averages_program ../f90/WGKP_averages.f90 ../f90/sub_model.f90 ../f90/sub_integrals.f90
+./WGKP_averages_program
+rm WGKP_averages_program
+echo "Time averaging successfully done."

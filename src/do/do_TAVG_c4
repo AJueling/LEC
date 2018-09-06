@@ -1,0 +1,46 @@
+#!/bin/bash 
+
+# $tavg_len year avera of unformatted binary files of dimension (3660,2400,1711)
+# files are output from extravars_viebahn run
+
+
+inputdir='/projects/0/samoc/jan/Andree/'
+outputdir='/projects/0/samoc/jan/Andree/'
+filebase='t.t0.1_42l_nccs01.tavg.5.year.'
+
+# timeseries info
+# using the previously (12 months --> 1 year --> 5 year) averaged files
+
+
+yrs=( $(seq 278 285) $(seq 321 324) )
+echo ${yrs[@]} 
+
+name=c4
+tavg_len=${#yrs[@]}
+
+ifort -O3 -convert big_endian -o TAVG_$tavg_len$name ../f90/TAVG.f90
+
+new_file='t.t0.1_42l_nccs01.tavg.5.year.'$name
+echo $new_file
+
+# number of files to expect
+echo $tavg_len              > in_list_$tavg_len$name
+# dimensions of file
+echo '3600,2400,1711'      >> in_list_$tavg_len$name
+# name of new file
+echo $outputdir$new_file   >> in_list_$tavg_len$name
+
+for t in ${yrs[@]}; do
+  bin_file=$inputdir$filebase$t
+  echo $bin_file           >> in_list_$tavg_len$name
+  t=$[t+1]
+  echo $t
+  echo $bin_file
+done
+
+./TAVG_$tavg_len$name < in_list_$tavg_len$name
+
+rm in_list_$tavg_len$name
+rm TAVG_$tavg_len$name
+echo "Time averaging successfully done."
+

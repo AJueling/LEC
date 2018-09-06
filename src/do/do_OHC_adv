@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+
+ifort -O3 -convert big_endian -o OHC_adv_program ../f90/OHC_adv.f90
+./OHC_adv_program
+rm OHC_adv_program

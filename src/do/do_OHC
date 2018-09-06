@@ -1,0 +1,65 @@
+#!/bin/csh -f
+#
+# This script calculated the Energy budget terms for POP model output.
+# It can average multiple monthly average output files to create e.g. yearly averages.
+# This script is adapted from the Atlantic salt budget time series script.
+# 
+
+# -----------------------------------
+#  User can change parameters below
+# -----------------------------------
+
+set year      = $argv[1]
+set inputfile = "/projects/0/samoc/jan/Andree/t.t0.1_42l_nccs01.tavg.year.$year"
+
+ifort -O3 -convert big_endian -o OHC_$year OHC.f90 -lnetcdf -lnetcdff
+
+# timeseries info
+# (data for extravars-case only exists for 026903-027001 at the moment;
+# the file that contains a certain month is written on the 1st day of the next month;
+# so the month in inputfilename is always 1 month up front
+# e.g. t.t0.1_42l_nccs01.012002 contains January year 120;
+# this means data is available for 02-269 to 12-269)
+
+# record numbers in tavg file
+# (CAUTION: these vary between experiments)
+# (the following values are for the run_henk_mixedbc_extravars case)
+
+set size = `stat --printf="%s" $inputfile`
+echo "size = " $size
+if      ( $size == 11923200000 ) then
+  set nrec_PD   = 301
+  set nrec_TEMP = 127
+  set nrec_SHF  = 213
+else if ( $size == 59132160000 ) then
+  set nrec_PD   = 995
+  set nrec_TEMP = 222
+  set nrec_SHF  = 401
+endif
+
+# START WITH THE CALCULATION OF THE ENERGY BUDGET
+# The program needs 7 inputs
+# 1.  3600,2400,42 = dimension of grid
+# 2.  name of GRID file
+# 3.  name of KMT file
+# 4.  name of in_depths file (contains thickness of depth levels)
+# 5.  name of DZBC file
+# 6.  name of tavg file
+# 7.  nrec field indices
+
+echo "3600,2400,42" >> in_list_OHC_$year
+echo "/home/dijkbio/andre/LEC/input/grid.3600x2400.fob.da" >> in_list_OHC_$year
+echo "/home/dijkbio/andre/LEC/input/kmt_pbc.p1_tripole.s2.0-og.20060315.no_caspian_or_black" >> in_list_OHC_$year
+echo "/home/dijkbio/andre/LEC/input/in_depths.42.dat" >> in_list_OHC_$year
+echo "/home/dijkbio/andre/LEC/input/dzbc_pbc.p1_tripole.s2.0-og.20060315.no_caspian_or_black" >> in_list_OHC_$year
+echo "$inputfile" >> in_list_OHC_$year
+echo `printf "%03d" $year` >> in_list_OHC_$year
+echo "$nrec_PD, $nrec_TEMP, $nrec_SHF" >> in_list_OHC_$year
+
+./OHC_$year < in_list_OHC_$year
+
+
+rm OHC_$year
+rm in_list_OHC_$year
+ 
+echo "All calculations successfully done."
