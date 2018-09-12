@@ -4,8 +4,8 @@ submitted to Journal of Geophysical Research: Oceans
 Project Lorenz Energy Cycle (LEC)
 by Andr\'e J\"uling, July 2018
 
-Calculates and analyses Lorenz Energy Cycle (LEC) of Parallel Ocean Program 
-(POP) model run that showed OHC oscillations in the Southern Ocean 
+Calculates and analyses Lorenz Energy Cycle (LEC) of a high resolution Parallel 
+Ocean Program (POP) model run that showed OHC oscillations in the Southern Ocean 
 (Le Bars, GRL 2016).
 
 In addition to the LEC other quantities are analysed, such as 
@@ -55,7 +55,7 @@ Workflow for the LEC calculation
 
 
 ================================================================================
-/results
+/doc
 ================================================================================
 
 [t.t0.1_42l_nccs01.007601.hdr]
@@ -67,6 +67,17 @@ Workflow for the LEC calculation
 [LEC_bin.hdr]
 - metadata for the derived LEC binary files
 
+[pop_in]
+- namelist provided to the POP model
+
+[pop_in_and_meaning_parameters.pdf]
+- explanations of parameters in pop_in
+
+[start_run.sc ]
+- script to start model run
+
+[movie_contents / tavg_contents] 
+- which field to output daily / monthly
 
 ================================================================================
 /src
