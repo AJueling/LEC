@@ -4,6 +4,8 @@ this script creates the maps
 it needs the 'nc/LEC_SOM_paper_maps_A_D.nc' that is created with the 'creating_netCDF.ipynb'
 """
 
+import os
+import sys
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -12,9 +14,8 @@ import cartopy
 import cartopy.crs as ccrs
 import numpy as np
 from netCDF4 import Dataset
+from PIL import Image
 matplotlib.use('Agg')
-#%matplotlib inline
-
 
 from read_binary import read_binary_2D, read_binary_2D_double, read_binary_3D
 from grid import generate_lats_lons, shift_field
@@ -308,3 +309,34 @@ for j, quant in enumerate(quantities):  # all quantities
         #plt.savefig('../../results/SOM_paper/'+quant+'_'+['D','A-D','B-D','C-D'][i]+'.eps', format='eps') #, bbox_inches='tight')
         #plt.savefig('../../results/SOM_paper/'+quant+'_'+['D','A-D','B-D','C-D'][i]+'.pdf', format='pdf') #, bbox_inches='tight')
         plt.close()
+
+        
+# combining 8 plots into single Figure
+
+for i in range(6):  # 6 images
+    quantities = [['rPm', 'rPe'],
+                  ['rKm', 'rKe'],
+                  ['gPm', 'gPe'],
+                  ['gKm', 'gKe'],
+                  ['cPKm', 'cPKe'],
+                  ['cPem', 'cKem']
+                 ]
+    
+    width  = 1289
+    if i in [0,1,4,5]:
+        height = 1578
+    else:
+        height = 1574
+    new_im = Image.new('RGB', (4*width, 2*height))
+    
+    for j, quant in enumerate(quantities[i]):  # two rows
+        for k, phase in enumerate(['D', 'A-D', 'B-D', 'C-D']):  # four columns
+            if i in [0,1,4,5]:
+                filename = f'../../results/SOM_paper/{quant}_vint_100_1500_{phase}.png'
+            else:
+                filename = f'../../results/SOM_paper/{quant}_{phase}.png'
+            assert os.path.exists(filename)
+            im = Image.open(filename)
+            new_im.paste(im, (k*width,j*height))
+
+    new_im.save(f'../../results/SOM_paper/Figure_{i+4}.pdf', format='pdf', author='Andre Jueling')

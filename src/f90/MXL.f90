@@ -15,7 +15,7 @@ implicit none
 
 integer                              ::                                        &
   imt,jmt,start_year,end_year,y,m,nt,n,nrec_HMXL,nrec_XMXL,nrec_TMXL,nrec_TEMP,&
-  counter,km,t,rec_length,k,n1000,nrec_PD,opt1,opt2,opt3,opt4,opt5,now
+  counter,km,t,rec_length,k,n1000,nrec_PD,opt1,opt2,opt3,opt4,opt5,now,nrec_SALT
 integer, dimension(:,:), allocatable ::                                        &
   XMASK, WMASK, SO30M
 character*160                        ::                                        & 
@@ -24,6 +24,7 @@ character*160                        ::                                        &
   HMXL_std_file,XMXL_std_file,TMXL_std_file,XMASK_file,WMASK_file,             &
   HMXL_ymask_file,XMXL_ymask_file,TMXL_ymask_file,TEMP_ymask_file,             &
   HMXL_mmask_file,XMXL_mmask_file,TMXL_mmask_file,TEMP_mmask_file,             &
+  SALT_ymask_file, SALT_mmask_file, PD_ymask_file, PD_mmask_file,              &
   XMXL_ymask_max_file,XMXL_mmask_max_file,LEC_folder,                          &
   XMXL_WMASK_file,TEMP_WMASK_s_file,TEMP_WMASK_v_file,PD_WMASK_s_file,         &
   PD_WMASK_v_file,HMXL_WMASK_file, TMXL_WMASK_file,                            &
@@ -39,13 +40,13 @@ real                                 ::                                        &
   TEMP_vol_1000_s, PD_vol_1000_s,integral,TEMP_vol_1000_w, PD_vol_1000_w,      &
   SO30M_area,SO30M_area_l22,WMASK_area_l22
 real, dimension(:),   allocatable    ::                                        &
-  TEMP_avg, TEMP_avg2, dz 
+  TEMP_avg, TEMP_avg2, dz, SALT_avg, SALT_avg2, PD_avg, PD_avg2
 real, dimension(:,:), allocatable    ::                                        &
   TAREA,HMXL,XMXL,TMXL,HMXL_avg,XMXL_max,TMXL_min,                             &
   HMXL_mean,XMXL_mean,TMXL_mean,HMXL_sum,XMXL_sum,TMXL_sum,                    &
   DXT,DYT,ref_state
 real,dimension(:,:,:), allocatable   ::                                        &
-  DZT, TEMP, PD, ONES
+  DZT, TEMP, PD, ONES, SALT
 double precision, parameter                     ::                             &
 c0 = 0., p125 = 0.125, p25 = 0.25, p5 = 0.5, c1 = 1.
 
@@ -122,6 +123,10 @@ XMXL_ymask_max_file = trim(output_folder2)//'XMXL_XMASK_max_y.csv'
 XMXL_mmask_max_file = trim(output_folder2)//'XMXL_XMASK_max_m.csv'
 TEMP_ymask_file     = trim(output_folder2)//'TEMP_XMASK_y'
 TEMP_mmask_file     = trim(output_folder2)//'TEMP_XMASK_m'
+SALT_ymask_file     = trim(output_folder2)//'SALT_XMASK_y'
+SALT_mmask_file     = trim(output_folder2)//'SALT_XMASK_m'
+PD_ymask_file     = trim(output_folder2)//'PD_XMASK_y'
+PD_mmask_file     = trim(output_folder2)//'PD_XMASK_m'
 
 HMXL_WMASK_file     = trim(output_folder2)//'HMXL_WMASK_m.csv'
 TMXL_WMASK_file     = trim(output_folder2)//'TMXL_WMASK_m.csv'
@@ -211,8 +216,8 @@ do y=start_year,end_year
       nrec_XMXL = 344
       nrec_TMXL = 345
     elseif ( file_size==14826240000.0 ) then 
-      nrec_HMXL = 427
-      nrec_XMXL = 428
+    nrec_HMXL = 427
+    nrec_XMXL = 428
       nrec_TMXL = 429
     elseif ( file_size==59132160000.0 ) then 
       nrec_HMXL = 1709
@@ -355,7 +360,9 @@ write(11,rec=1) XMASK
 ! calculating masked quantitites
 !===============================================================================
 
-allocate( TEMP(imt,jmt,km), TEMP_avg(km), TEMP_avg2(km), PD(imt,jmt,km) )
+allocate( TEMP(imt,jmt,km), TEMP_avg(km), TEMP_avg2(km),                       &
+          SALT(imt,jmt,km), SALT_avg(km), SALT_avg2(km),                       &
+          PD(imt,jmt,km),   PD_avg(km),   PD_avg2(km) )
 
 open(12,file=HMXL_ymask_file,    form='formatted')
 open(13,file=XMXL_ymask_file,    form='formatted')
@@ -392,6 +399,15 @@ open(36,file=TEMP_WMASK_d_file,  form='formatted')
 open(37,file=TEMP_SO30_d_file,  form='formatted')
 open(38,file=PD_WMASK_d_file,    form='formatted')
 open(39,file=PD_SO30_d_file,    form='formatted')
+
+open(40,file=SALT_mmask_file,access='direct',form='unformatted',               &
+        recl=km,status='unknown')
+open(41,file=SALT_ymask_file,access='direct',form='unformatted',               &
+        recl=km,status='unknown')
+open(42,file=PD_mmask_file,access='direct',form='unformatted',                 &
+        recl=km,status='unknown')
+open(43,file=PD_ymask_file,access='direct',form='unformatted',                 &
+        recl=km,status='unknown')
 !same loops as above
 ! loop over years
 201 FORMAT (A,",",A)
@@ -492,24 +508,27 @@ do y=start_year,end_year
     call system(cmd)
     close(11)
 
-    write(*,*) y, m !, file_name, file_size
+    write(*,*) y, m , file_name, file_size
     if     ( file_size==11923200000.0 ) then
       nrec_HMXL =  343
       nrec_XMXL =  344
       nrec_TMXL =  345
       nrec_TEMP =  127
+      nrec_SALT =  169
       nrec_PD   =  301
-    elseif ( file_size==14826240000.0 ) then 
+    elseif ( file_size==14826240000.0 ) then  ! 14GB files before 277
       nrec_HMXL =  427
       nrec_XMXL =  428
       nrec_TMXL =  429
       nrec_TEMP =  127
+      nrec_SALT =  169 
       nrec_PD   =  301
-    elseif ( file_size==59132160000.0 ) then 
+    elseif ( file_size==59132160000.0 ) then  ! 56GB extra_vars files after 276 
       nrec_HMXL = 1709
       nrec_XMXL = 1710
       nrec_TMXL = 1711
       nrec_TEMP =  222
+      nrec_SALT =  264
       nrec_PD   =  385
     endif
 
@@ -541,6 +560,7 @@ do y=start_year,end_year
     write(35,302) y,m,integral/SO30M_area
 
     call load_3D_field(1,nrec_TEMP,TEMP)
+    call load_3D_field(1,nrec_SALT,SALT)
     call load_3D_field(1,nrec_PD,PD)
     
     ! surface integrals
@@ -581,17 +601,29 @@ do y=start_year,end_year
     ! monthly
     do k=1,km
       call masked_avg(DXT,DYT,XMASK,XMASK_area,TEMP(:,:,k),TEMP_avg(k))
+      call masked_avg(DXT,DYT,XMASK,XMASK_area,SALT(:,:,k),SALT_avg(k))
+      call masked_avg(DXT,DYT,XMASK,XMASK_area,PD(:,:,k)  ,PD_avg(k))
     enddo
     write(20,rec=counter) TEMP_avg(:)
+    write(40,rec=counter) SALT_avg(:)
+    write(42,rec=counter) PD_avg(:)
 
     ! yearly average TEMP profile
     if ( m==12 ) then
       TEMP_avg(:) = 0.0
+      SALT_avg(:) = 0.0
+      PD_avg(:) = 0.0
       do t=1,12
         read(20,rec=counter-t+1) TEMP_avg2
+        read(40,rec=counter-t+1) SALT_avg2
+        read(42,rec=counter-t+1) PD_avg2
         TEMP_avg(:) = TEMP_avg(:) + TEMP_avg2(:)/12.0
+        SALT_avg(:) = SALT_avg(:) + SALT_avg2(:)/12.0
+        PD_avg(:)   = PD_avg(:)   + PD_avg2(:)/12.0
       enddo !t
       write(21,rec=y-start_year+1) TEMP_avg(:)
+      write(41,rec=y-start_year+1) SALT_avg(:)
+      write(43,rec=y-start_year+1) PD_avg(:)
     endif
   enddo !m
 enddo !y
