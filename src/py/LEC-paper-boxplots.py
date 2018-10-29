@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.ticker as mticker
@@ -11,7 +10,7 @@ from read_output import LEC_global, analyze_LEC
 
 def LEC4_overview(df, name, letter):
     """
-    
+    creates a Lorenz Energy Cycle plot with reseroir, generation, exchange, and dissipation terms
     """    
     
     fig, ax = plt.subplots(figsize=(10,10))
@@ -44,7 +43,6 @@ def LEC4_overview(df, name, letter):
     uarrow_list = []
 
     ax.text(grid[4][0]-.45,grid[4][1]+.25,f'{letter}) {name}',fontsize=24,ha='left')
-
     
     for i in [4,5,10,11]: #rarrow_list    
         if POP[i]>=0.0:
@@ -118,14 +116,15 @@ def LEC4_overview(df, name, letter):
 
     plt.axis('off')
     
-    plt.savefig('../../results/SOM_paper/LEC4_overview_'+name+'.png',bbox_inches='tight',dpi=100)
-    plt.savefig('../../results/SOM_paper/LEC4_overview_'+name+'.eps',bbox_inches='tight',format='eps')
+    plt.savefig('../../results/SOM_paper/LEC4_overview_'+name+'.png',bbox_inches='tight',dpi=100, author='Andre Jueling')
+    plt.savefig('../../results/SOM_paper/LEC4_overview_'+name+'.eps',bbox_inches='tight',format='eps', author='Andre Jueling')
+    plt.savefig('../../results/SOM_paper/LEC4_overview_'+name+'.pdf',bbox_inches='tight',format='pdf', author='Andre Jueling')
 
 
 
 def LEC4_BT_overview(df, name, letter):
     """
-    with Km boundary term
+    same as above but with Km boundary term
     df contains 'df_SO30' and 'budget' dataframes
     """    
     
@@ -164,7 +163,6 @@ def LEC4_BT_overview(df, name, letter):
 
     ax.text(grid[4][0]-.45,grid[4][1]+.25,f'{letter}) {name}',fontsize=24,ha='left')
 
-    
     for i in [4,5,10,11]: #rarrow_list    
         if POP[i]>=0.0:
             rarrow_list.append(i)
@@ -205,7 +203,6 @@ def LEC4_BT_overview(df, name, letter):
         if i in barrow_list: 
             arrw = mpatches.FancyArrow(x=grid[pos[i]][0]-.35, y=grid[pos[i]][1]-.35, dx=0.65,dy=0.65,\
                                    width=0.7,head_width=0.9,head_length=0.2,length_includes_head=True)
-            
 
         if i<4:    # energy reservoirs
             plt.text(grid[pos[i]][0], grid[pos[i]][1]+0.2, titles[i],\
@@ -272,9 +269,10 @@ def LEC4_BT_overview(df, name, letter):
 
     plt.axis('off')
     
-    
-    plt.savefig('../../results/SOM_paper/LEC4_BT_overview_'+name+'.png',bbox_inches='tight',dpi=100)
-    plt.savefig('../../results/SOM_paper/LEC4_BT_overview_'+name+'.eps',bbox_inches='tight',format='eps')
+    plt.savefig('../../results/SOM_paper/LEC4_BT_overview_'+name+'.png',bbox_inches='tight',dpi=100, author='Andre Jueling')
+    plt.savefig('../../results/SOM_paper/LEC4_BT_overview_'+name+'.eps',bbox_inches='tight',format='eps', author='Andre Jueling')
+    plt.savefig('../../results/SOM_paper/LEC4_BT_overview_'+name+'.pdf',bbox_inches='tight',format='pdf', author='Andre Jueling')
+
     
 
 start_year=278
@@ -289,12 +287,12 @@ for t in range(start_year, end_year):
     df = df.append(tmp)
     del tmp, fh
 
-
 dfg, dfg_anom, dfg_norm = LEC_global('../../results',5)
 df_SO30, df_SO30_anom, df_SO30_norm = analyze_LEC('../../results',5,'SO30')
 df_WGKP, df_WGKP_anom, df_WGKP_norm = analyze_LEC('../../results',5,'WGKP')
 
 
-LEC4_overview(dfg,'global','a')
-LEC4_BT_overview(df_SO30,'SO30','b')
-LEC4_BT_overview(df_WGKP,'WGKP','c')
+if __name__ == "__main__":
+    LEC4_overview(dfg,'global','a')
+    LEC4_BT_overview(df_SO30,'SO30','b')
+    LEC4_BT_overview(df_WGKP,'WGKP','c')

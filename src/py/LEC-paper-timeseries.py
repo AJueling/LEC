@@ -58,48 +58,42 @@ data1=data[:]
 del(data)
 
 
-""" Fig 1a: BSF time series """
+""" Fig 1: BSF and OSF time series """
 
-plt.figure(figsize=(6,4))
-# C,    = plt.plot(range(278,325),(data1-np.mean(data1))/np.std(data1), 'k', linewidth=3.0, label='C')
-# DP,   = plt.plot(years,BSFDP, 'b', linewidth=3.0, label='DP')
-# WG,   = plt.plot(years,BSFWG, 'r', linewidth=3.0, label='WG')
-SI,   = plt.plot(year, (SOM_index-np.mean(SOM_index[125:251]))/np.std(SOM_index[125:251]),
-                 color=sns.color_palette("tab10")[0], linewidth=2.0, label='SOM index')
-C,    = plt.plot(years,(data1-np.mean(data1[125:252]))/np.std(data1[125:252]),
-                 'k', linewidth=2.0, label='max MLD')
-DP,   = plt.plot(years,(BSFDP-np.nanmean(BSFDP[125:252]))/np.nanstd(BSFDP[125:252]),
-                 color=sns.color_palette("tab10")[1], linewidth=2.0, label='Drake Passage')
-WG,   = plt.plot(years,(BSFWG-np.nanmean(BSFWG[125:252]))/np.nanstd(BSFWG[125:252]),
-                 color=sns.color_palette("tab10")[3], linewidth=2.0, label='Weddell Gyre')
-plt.legend(handles=[DP, WG, C, SI])
-plt.xlabel('year')
-plt.ylabel('normalized amplitude')
-plt.title('a) Drake Passage and Weddell Gyre volume transports')
-plt.savefig('../../results/SOM_paper/DP_WG_voltran_v8', dpi=100, bbox_inches='tight')
-plt.savefig('../../results/SOM_paper/DP_WG_voltran_v8.eps', format='eps', dpi=100, bbox_inches='tight')
+f, ax = plt.subplots(1, 2, figsize=(12,4))
 
+SI,   = ax[0].plot(year, (SOM_index-np.mean(SOM_index[125:251]))/np.std(SOM_index[125:251]),
+                   color=sns.color_palette("tab10")[0], linewidth=1.5, label='SOM index')
+C,    = ax[0].plot(years,(data1-np.mean(data1[125:252]))/np.std(data1[125:252]),
+                   'k', linewidth=1.5, label='max MLD')
+DP,   = ax[0].plot(years,(BSFDP-np.nanmean(BSFDP[125:252]))/np.nanstd(BSFDP[125:252]),
+                   color=sns.color_palette("tab10")[1], linewidth=1.5, label='Drake Passage')
+WG,   = ax[0].plot(years,(BSFWG-np.nanmean(BSFWG[125:252]))/np.nanstd(BSFWG[125:252]),
+                   color=sns.color_palette("tab10")[3], linewidth=1.5, label='Weddell Gyre')
+ax[0].legend(handles=[DP, WG, C, SI])
+ax[0].set_ylim((-2.95,2.9))
+ax[0].set_xlabel('year')
+ax[0].set_ylabel('normalized amplitude')
+ax[0].set_title('a) Drake Passage and Weddell Gyre volume transports')
 
-""" Fig 1b: OSF timeseries"""
+SI,   = ax[1].plot(year, (SOM_index-np.mean(SOM_index[125:251]))/np.std(SOM_index[125:251]),
+                   color=sns.color_palette("tab10")[0], linewidth=1.5, label='SOM index')
+C,    = ax[1].plot(years,(data1-np.mean(data1[125:252]))/np.std(data1[125:252]),
+                   'k', linewidth=1.5, label='max MLD')
+NS,   = ax[1].plot(years,(NADW30S-np.mean(NADW30S[125:252]))/np.std(NADW30S[125:252]),
+                   color=sns.color_palette("tab10")[4], linewidth=1.5, label='NADW')
+AA,   = ax[1].plot(years,(np.abs(AABW30S)-np.mean(np.abs(AABW30S[125:252])))/np.std(np.abs(AABW30S[125:252])),
+                   color=sns.color_palette("tab10")[2], linewidth=1.5, label='AABW')
+ax[1].legend(handles=[AA, NS, C, SI])
+ax[1].set_ylim((-2.95,2.9))
+ax[1].set_xlabel('year')
+ax[1].set_ylabel('normalized amplitude')
+ax[1].set_title('b) AABW and NADW volume transports at 30$^\circ$S')
 
-plt.figure(figsize=(6,4))
-# C,    = plt.plot(range(278,325),(data1-np.mean(data1))/np.std(data1), 'k', linewidth=3.0, label='C')
-# AA,   = plt.plot(years,np.abs(AABW30S), 'b', linewidth=3.0, label='C')
-# NS,   = plt.plot(years,NADW30S, 'r', linewidth=3.0, label='C')
-SI,   = plt.plot(year, (SOM_index-np.mean(SOM_index[125:251]))/np.std(SOM_index[125:251]),
-                 color=sns.color_palette("tab10")[0], linewidth=2.0, label='SOM index')
-C,    = plt.plot(years,(data1-np.mean(data1[125:252]))/np.std(data1[125:252]),
-                 'k', linewidth=2.0, label='max MLD')
-NS,   = plt.plot(years,(NADW30S-np.mean(NADW30S[125:252]))/np.std(NADW30S[125:252]),
-                 color=sns.color_palette("tab10")[4], linewidth=2.0, label='NADW')
-AA,   = plt.plot(years,(np.abs(AABW30S)-np.mean(np.abs(AABW30S[125:252])))/np.std(np.abs(AABW30S[125:252])),
-                 color=sns.color_palette("tab10")[2], linewidth=2.0, label='AABW')
-plt.legend(handles=[AA, NS, C, SI])
-plt.xlabel('year')
-plt.ylabel('normalized amplitude')
-plt.title('b) AABW and NADW volume transports at 30$^\circ$S')
-plt.savefig('../../results/SOM_paper/AABW_NADW_moc_v8', dpi=100, bbox_inches='tight')
-plt.savefig('../../results/SOM_paper/AABW_NADW_moc_v8.eps', format='eps', dpi=100, bbox_inches='tight')
+plt.tight_layout()
+plt.savefig('../../results/SOM_paper/Figure_1', dpi=100)
+plt.savefig('../../results/SOM_paper/Figure_1.eps', format='eps', dpi=100)
+plt.savefig('../../results/SOM_paper/Figure_1.pdf', format='pdf', dpi=100)
 
 
 
@@ -145,6 +139,8 @@ def plot_phases_I(ax):
     ax.text(315, 2.1, r'B', fontsize=15)
     ax.text(279, 2.1, r'C', fontsize=15)
     ax.text(323, 2.1, r'C', fontsize=15)
+    
+    
 def plot_phases_II(ax):
     ax.bar(285.5, 10, 0.5, -2.1, color='lightgrey')
     ax.bar(298.5, 10, 0.5, -2.1, color='lightgrey')
@@ -155,166 +151,191 @@ def plot_phases_II(ax):
     ax.text(315, 2.1, r'B', fontsize=15)
     ax.text(279, 2.1, r'C', fontsize=15)
     ax.text(323, 2.1, r'C', fontsize=15)
+    
+    
 ts = range(278,325)
 
 
 """ Fig 10 a-c: WGKP """
 
-f, ax = plt.subplots(1, 3, figsize=(12,4))
-
-C,   = ax[0].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
-                  'k', linewidth=2.0, label='MLD')
-gPm, = ax[0].plot(ts,(np.squeeze(data_WGKP[0,:])-np.mean(np.squeeze(data_WGKP[0,:])))/np.std(np.squeeze(data_WGKP[0,:])),
-                  color=sns.color_palette("tab10")[0], linewidth=3.0, label='$G(P_m)$')
-gPe, = ax[0].plot(ts,(np.squeeze(data_WGKP[1,:])-np.mean(np.squeeze(data_WGKP[1,:])))/np.std(np.squeeze(data_WGKP[1,:])),
-                  color=sns.color_palette("tab10")[1], linewidth=3.0, label='$G(P_e)$')
-gKm, = ax[0].plot(ts,(np.squeeze(data_WGKP[2,:])-np.mean(np.squeeze(data_WGKP[2,:])))/np.std(np.squeeze(data_WGKP[2,:])),
-                  color=sns.color_palette("tab10")[2], linewidth=3.0, label='$G(K_m)$')
-gKe, = ax[0].plot(ts,(np.squeeze(data_WGKP[3,:])-np.mean(np.squeeze(data_WGKP[3,:])))/np.std(np.squeeze(data_WGKP[3,:])),
-                  color=sns.color_palette("tab10")[9], linewidth=3.0, label='$G(K_e)$')
-plot_phases_I(ax[0])
-ax[0].legend(handles=[gPm, gPe, gKm, gKe, C], ncol=3, loc='lower center')
-ax[0].set_ylim([-2.4, 2.6])
-ax[0].set_xlabel('year', fontsize=12)
-ax[0].set_ylabel('normalized amplitude', fontsize=12)
-ax[0].set_title('a) Power input in WGKP region', fontsize=12)
-
-C,   = ax[1].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
-                  'k', linewidth=2.0, label='MLD')
-rPm, = ax[1].plot(ts,(np.squeeze(data_WGKP[8,:])-np.mean(np.squeeze(data_WGKP[8,:])))/np.std(np.squeeze(data_WGKP[8,:])),
-                  color=sns.color_palette("tab10")[0], linewidth=3.0, label='$P_m$')
-rPe, = ax[1].plot(ts,(np.squeeze(data_WGKP[9,:])-np.mean(np.squeeze(data_WGKP[9,:])))/np.std(np.squeeze(data_WGKP[9,:])),
-                  color=sns.color_palette("tab10")[1], linewidth=3.0, label='$P_e$')
-rKm, = ax[1].plot(ts,(np.squeeze(data_WGKP[10,:])-np.mean(np.squeeze(data_WGKP[10,:])))/np.std(np.squeeze(data_WGKP[10,:])),
-                  color=sns.color_palette("tab10")[2], linewidth=3.0, label='$K_m$')
-rKe, = ax[1].plot(ts,(np.squeeze(data_WGKP[11,:])-np.mean(np.squeeze(data_WGKP[11,:])))/np.std(np.squeeze(data_WGKP[11,:])), 
-                  color=sns.color_palette("tab10")[9], linewidth=3.0, label='$K_e$')
-plot_phases_I(ax[1])
-ax[1].legend(handles=[rPm, rPe, rKm, rKe, C], ncol=3, loc='lower center')
-ax[1].set_ylim([-2.4, 2.6])
-ax[1].set_xlabel('year', fontsize=12)
-ax[1].set_ylabel('normalized amplitude', fontsize=12)
-ax[1].set_title('b) Energy reservoirs in WGKP region', fontsize=12)
-
-C,    = ax[2].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
-                   'k', linewidth=2.0, label='MLD')
-cPKm, = ax[2].plot(ts,(np.squeeze(data_WGKP[14,:])-np.mean(np.squeeze(data_WGKP[14,:])))/np.std(np.squeeze(data_WGKP[14,:])),
-                   color=sns.color_palette("tab10")[0], linewidth=3.0, label='$C(P_m,K_m)$')
-cPKe, = ax[2].plot(ts,(np.squeeze(data_WGKP[15,:])-np.mean(np.squeeze(data_WGKP[15,:])))/np.std(np.squeeze(data_WGKP[15,:])),
-                   color=sns.color_palette("tab10")[1], linewidth=3.0, label='$C(P_e,K_e)$')
-cPem, = ax[2].plot(ts,(np.squeeze(data_WGKP[12,:])-np.mean(np.squeeze(data_WGKP[12,:])))/np.std(np.squeeze(data_WGKP[12,:])),
-                   color=sns.color_palette("tab10")[2], linewidth=3.0, label='$C(P_e,P_m)$')
-cKem, = ax[2].plot(ts,(np.squeeze(data_WGKP[13,:])-np.mean(np.squeeze(data_WGKP[13,:])))/np.std(np.squeeze(data_WGKP[13,:])),
-                   color=sns.color_palette("tab10")[9], linewidth=3.0, label='$C(K_e,K_m)$')
-
-plot_phases_I(ax[2])
-ax[2].legend(handles=[cPKm, cPKe, cPem, cKem, C], ncol=3, loc='lower center', handletextpad=0.5, columnspacing=1)
-ax[2].set_ylim([-2.4, 2.6])
-ax[2].set_xlabel('year', fontsize=12)
-ax[2].set_ylabel('normalized amplitude', fontsize=12)
-ax[2].set_title('c) Energy conversion in WGKP region', fontsize=12)
+f, ax = plt.subplots(2, 3, figsize=(12,8))
 
 
-plt.tight_layout()
-
-plt.savefig('../../results/SOM_paper/Fig_10_I', dpi=100)
-plt.savefig('../../results/SOM_paper/Fig_10_I.eps', format='eps', dpi=100)
-
-
-""" Fig 10: SO30 """
-
-f, ax = plt.subplots(1, 3, figsize=(12,4))
-
-C,   = ax[0].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
-                  'k', linewidth=1.0, label='MLD')
-gPm, = ax[0].plot(ts,(np.squeeze(data_SO30[0,:])-np.mean(np.squeeze(data_SO30[0,:])))/np.std(np.squeeze(data_SO30[0,:])),
-                  color=sns.color_palette("tab10")[0],
-                  linewidth=3.0,
-                  label='$G(P_m)$')
-gPe, = ax[0].plot(ts,(np.squeeze(data_SO30[1,:])-np.mean(np.squeeze(data_SO30[1,:])))/np.std(np.squeeze(data_SO30[1,:])),
-                  color=sns.color_palette("tab10")[1],
-                  linewidth=3.0,
-#                   linestyle=':',
-                  label='$G(P_e)$')
-gKm, = ax[0].plot(ts,(np.squeeze(data_SO30[2,:])-np.mean(np.squeeze(data_SO30[2,:])))/np.std(np.squeeze(data_SO30[2,:])),
-                  color=sns.color_palette("tab10")[2],
-                  linewidth=3.0,
-#                   linestyle='--',
-                  label='$G(K_m)$')
-gKe, = ax[0].plot(ts,(np.squeeze(data_SO30[3,:])-np.mean(np.squeeze(data_SO30[3,:])))/np.std(np.squeeze(data_SO30[3,:])),
-                  color=sns.color_palette("tab10")[9],
-                  linewidth=3.0,
-#                   linestyle=(0, (3, 1, 1, 1, 1, 1)),
-                  label='$G(K_e)$')
-plot_phases_II(ax[0])
-ax[0].legend(handles=[gPm, gPe, gKm, gKe, C], ncol=3, loc='lower center')
-ax[0].set_ylim([-3.2, 2.6])
-ax[0].set_xlabel('year', fontsize=12)
-ax[0].set_ylabel('normalized amplitude', fontsize=12)
-ax[0].set_title('d) Power input in SO30 region', fontsize=12)
-
-C,   = ax[1].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
-                  'k', linewidth=1.0, label='MLD')
-rPm, = ax[1].plot(ts,(np.squeeze(data_SO30[8,:])-np.mean(np.squeeze(data_SO30[8,:])))/np.std(np.squeeze(data_SO30[8,:])),
-                  color=sns.color_palette("tab10")[0],
-                  linewidth=3.0,
-                  label='$P_m$')
-rPe, = ax[1].plot(ts,(np.squeeze(data_SO30[9,:])-np.mean(np.squeeze(data_SO30[9,:])))/np.std(np.squeeze(data_SO30[9,:])),
-                  color=sns.color_palette("tab10")[1],
-                  linewidth=3.0,
-#                   linestyle=':',
-                  label='$P_e$')
-rKm, = ax[1].plot(ts,(np.squeeze(data_SO30[10,:])-np.mean(np.squeeze(data_SO30[10,:])))/np.std(np.squeeze(data_SO30[10,:])),
-                  color=sns.color_palette("tab10")[2],
-                  linewidth=3.0,
-#                   linestyle='--',
-                  label='$K_m$')
-rKe, = ax[1].plot(ts,(np.squeeze(data_SO30[11,:])-np.mean(np.squeeze(data_SO30[11,:])))/np.std(np.squeeze(data_SO30[11,:])), 
-                  color=sns.color_palette("tab10")[9],
-                  linewidth=3.0,
-#                   linestyle=(0, (3, 1, 1, 1, 1, 1)),
-                  label='$K_e$')
-plot_phases_II(ax[1])
-ax[1].legend(handles=[rPm, rPe, rKm, rKe, C], ncol=3, loc='lower center')
-ax[1].set_ylim([-3.2, 2.6])
-ax[1].set_xlabel('year', fontsize=12)
-ax[1].set_ylabel('normalized amplitude', fontsize=12)
-ax[1].set_title('e) Energy reservoirs in SO30 region', fontsize=12)
-
-C,    = ax[2].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
-                   'k', linewidth=1.0, label='MLD')
-cPKm, = ax[2].plot(ts,(np.squeeze(data_SO30[14,:])-np.mean(np.squeeze(data_SO30[14,:])))/np.std(np.squeeze(data_SO30[14,:])),
-                   color=sns.color_palette("tab10")[0],
-                   linewidth=3.0,
-                   label='$C(P_m,K_m)$')
-cPKe, = ax[2].plot(ts,(np.squeeze(data_SO30[15,:])-np.mean(np.squeeze(data_SO30[15,:])))/np.std(np.squeeze(data_SO30[15,:])),
-                   color=sns.color_palette("tab10")[1],
-                   linewidth=3.0,
-#                    linestyle=':',
-                   label='$C(P_e,K_e)$')
-cPem, = ax[2].plot(ts,(np.squeeze(data_SO30[12,:])-np.mean(np.squeeze(data_SO30[12,:])))/np.std(np.squeeze(data_SO30[12,:])),
-                   color=sns.color_palette("tab10")[2],
-                   linewidth=3.0,
-#                    linestyle='--',
-                   label='$C(P_e,P_m)$')
-cKem, = ax[2].plot(ts,(np.squeeze(data_SO30[13,:])-np.mean(np.squeeze(data_SO30[13,:])))/np.std(np.squeeze(data_SO30[13,:])),
-                   color=sns.color_palette("tab10")[9],
-                   linewidth=3.0,
-#                    linestyle=(0, (3, 1, 1, 1, 1, 1)),
-                   label='$C(K_e,K_m)$')
-
-plot_phases_II(ax[2])
-ax[2].legend(handles=[cPKm, cPKe, cPem, cKem, C], ncol=3, loc='lower center', handletextpad=0.5, columnspacing=1)
-ax[2].set_ylim([-3.2, 2.6])
-ax[2].set_xlabel('year', fontsize=12)
-ax[2].set_ylabel('normalized amplitude', fontsize=12)
-ax[2].set_title('f) Energy conversion in SO30 region', fontsize=12)
+C,   = ax[0,0].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
+                    color='k', 
+                    linewidth=1.5, 
+                    label='MLD')
+gPm, = ax[0,0].plot(ts,(np.squeeze(data_WGKP[0,:])-np.mean(np.squeeze(data_WGKP[0,:])))/np.std(np.squeeze(data_WGKP[0,:])),
+                    color=sns.color_palette()[0],
+                    linewidth=2.5, 
+                    label='$G(P_m)$')
+gPe, = ax[0,0].plot(ts,(np.squeeze(data_WGKP[1,:])-np.mean(np.squeeze(data_WGKP[1,:])))/np.std(np.squeeze(data_WGKP[1,:])),
+                    color=sns.color_palette()[1],
+                    linewidth=2.5, 
+                    label='$G(P_e)$')
+gKm, = ax[0,0].plot(ts,(np.squeeze(data_WGKP[2,:])-np.mean(np.squeeze(data_WGKP[2,:])))/np.std(np.squeeze(data_WGKP[2,:])),
+                    color=sns.color_palette()[2], 
+                    linewidth=2.5, 
+                    label='$G(K_m)$')
+gKe, = ax[0,0].plot(ts,(np.squeeze(data_WGKP[3,:])-np.mean(np.squeeze(data_WGKP[3,:])))/np.std(np.squeeze(data_WGKP[3,:])),
+                    color=sns.color_palette()[9], 
+                    linewidth=2.5, 
+                    label='$G(K_e)$')
+plot_phases_I(ax[0,0])
+ax[0,0].legend(handles=[gPm, gPe, gKm, gKe, C], ncol=3, loc='lower center')
+ax[0,0].set_ylim([-2.4, 2.6])
+ax[0,0].set_xlabel('year', fontsize=12)
+ax[0,0].set_ylabel('normalized amplitude', fontsize=12)
+ax[0,0].set_title('a) Power input in WGKP region', fontsize=12)
 
 
-plt.tight_layout()
+C,   = ax[0,1].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
+                    color='k',
+                    linewidth=1.5,
+                    label='MLD')
+rPm, = ax[0,1].plot(ts,(np.squeeze(data_WGKP[8,:])-np.mean(np.squeeze(data_WGKP[8,:])))/np.std(np.squeeze(data_WGKP[8,:])),
+                    color=sns.color_palette()[0],
+                    linewidth=2.5,
+                    label='$P_m$')
+rPe, = ax[0,1].plot(ts,(np.squeeze(data_WGKP[9,:])-np.mean(np.squeeze(data_WGKP[9,:])))/np.std(np.squeeze(data_WGKP[9,:])),
+                    color=sns.color_palette()[1],
+                    linewidth=2.5,
+                    label='$P_e$')
+rKm, = ax[0,1].plot(ts,(np.squeeze(data_WGKP[10,:])-np.mean(np.squeeze(data_WGKP[10,:])))/np.std(np.squeeze(data_WGKP[10,:])),
+                    color=sns.color_palette()[2], 
+                    linewidth=2.5, label='$K_m$')
+rKe, = ax[0,1].plot(ts,(np.squeeze(data_WGKP[11,:])-np.mean(np.squeeze(data_WGKP[11,:])))/np.std(np.squeeze(data_WGKP[11,:])), 
+                    color=sns.color_palette()[9], 
+                    linewidth=2.5,
+                    label='$K_e$')
+plot_phases_I(ax[0,1])
+ax[0,1].legend(handles=[rPm, rPe, rKm, rKe, C], ncol=3, loc='lower center')
+ax[0,1].set_ylim([-2.4, 2.6])
+ax[0,1].set_xlabel('year', fontsize=12)
+ax[0,1].set_ylabel('normalized amplitude', fontsize=12)
+ax[0,1].set_title('b) Energy reservoirs in WGKP region', fontsize=12)
 
-plt.savefig('../../results/SOM_paper/Fig_10_II', dpi=100)
-plt.savefig('../../results/SOM_paper/Fig_10_II.eps', format='eps', dpi=100)
+
+C,    = ax[0,2].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
+                     color='k',
+                     linewidth=1.5, 
+                     label='MLD')
+cPKm, = ax[0,2].plot(ts,(np.squeeze(data_WGKP[14,:])-np.mean(np.squeeze(data_WGKP[14,:])))/np.std(np.squeeze(data_WGKP[14,:])),
+                     color=sns.color_palette()[0],
+                     linewidth=2.5,
+                     label='$C(P_m,K_m)$')
+cPKe, = ax[0,2].plot(ts,(np.squeeze(data_WGKP[15,:])-np.mean(np.squeeze(data_WGKP[15,:])))/np.std(np.squeeze(data_WGKP[15,:])),
+                     color=sns.color_palette()[1], 
+                     linewidth=2.5,
+                     label='$C(P_e,K_e)$')
+cPem, = ax[0,2].plot(ts,(np.squeeze(data_WGKP[12,:])-np.mean(np.squeeze(data_WGKP[12,:])))/np.std(np.squeeze(data_WGKP[12,:])),
+                     color=sns.color_palette()[2], 
+                     linewidth=2.5, 
+                     label='$C(P_e,P_m)$')
+cKem, = ax[0,2].plot(ts,(np.squeeze(data_WGKP[13,:])-np.mean(np.squeeze(data_WGKP[13,:])))/np.std(np.squeeze(data_WGKP[13,:])),
+                     color=sns.color_palette()[9],
+                     linewidth=2.5,
+                     label='$C(K_e,K_m)$')
+
+plot_phases_I(ax[0,2])
+ax[0,2].legend(handles=[cPKm, cPKe, cPem, cKem, C], ncol=3, loc='lower center', handletextpad=0.5, columnspacing=1)
+ax[0,2].set_ylim([-2.4, 2.6])
+ax[0,2].set_xlabel('year', fontsize=12)
+ax[0,2].set_ylabel('normalized amplitude', fontsize=12)
+ax[0,2].set_title('c) Energy conversion in WGKP region', fontsize=12)
+
+
+C,   = ax[1,0].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
+                    color='k',
+                    linewidth=1.5,
+                    label='MLD')
+gPm, = ax[1,0].plot(ts,(np.squeeze(data_SO30[0,:])-np.mean(np.squeeze(data_SO30[0,:])))/np.std(np.squeeze(data_SO30[0,:])),
+                    color=sns.color_palette()[0],
+                    linewidth=2.5,
+                    label='$G(P_m)$')
+gPe, = ax[1,0].plot(ts,(np.squeeze(data_SO30[1,:])-np.mean(np.squeeze(data_SO30[1,:])))/np.std(np.squeeze(data_SO30[1,:])),
+                    color=sns.color_palette()[1],
+                    linewidth=2.5,
+                    label='$G(P_e)$')
+gKm, = ax[1,0].plot(ts,(np.squeeze(data_SO30[2,:])-np.mean(np.squeeze(data_SO30[2,:])))/np.std(np.squeeze(data_SO30[2,:])),
+                    color=sns.color_palette()[2],
+                    linewidth=2.5,
+                    label='$G(K_m)$')
+gKe, = ax[1,0].plot(ts,(np.squeeze(data_SO30[3,:])-np.mean(np.squeeze(data_SO30[3,:])))/np.std(np.squeeze(data_SO30[3,:])),
+                    color=sns.color_palette()[9],
+                    linewidth=2.5,
+                    label='$G(K_e)$')
+plot_phases_II(ax[1,0])
+ax[1,0].legend(handles=[gPm, gPe, gKm, gKe, C], ncol=3, loc='lower center')
+ax[1,0].set_ylim([-3.2, 2.6])
+ax[1,0].set_xlabel('year', fontsize=12)
+ax[1,0].set_ylabel('normalized amplitude', fontsize=12)
+ax[1,0].set_title('d) Power input in SO30 region', fontsize=12)
+
+
+C,   = ax[1,1].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
+                    color='k',
+                    linewidth=1.5,
+                    label='MLD')
+rPm, = ax[1,1].plot(ts,(np.squeeze(data_SO30[8,:])-np.mean(np.squeeze(data_SO30[8,:])))/np.std(np.squeeze(data_SO30[8,:])),
+                    color=sns.color_palette()[0],
+                    linewidth=2.5,
+                    label='$P_m$')
+rPe, = ax[1,1].plot(ts,(np.squeeze(data_SO30[9,:])-np.mean(np.squeeze(data_SO30[9,:])))/np.std(np.squeeze(data_SO30[9,:])),
+                    color=sns.color_palette()[1],
+                    linewidth=2.5,
+                    label='$P_e$')
+rKm, = ax[1,1].plot(ts,(np.squeeze(data_SO30[10,:])-np.mean(np.squeeze(data_SO30[10,:])))/np.std(np.squeeze(data_SO30[10,:])),
+                    color=sns.color_palette()[2],
+                    linewidth=2.5,
+                    label='$K_m$')
+rKe, = ax[1,1].plot(ts,(np.squeeze(data_SO30[11,:])-np.mean(np.squeeze(data_SO30[11,:])))/np.std(np.squeeze(data_SO30[11,:])), 
+                    color=sns.color_palette()[9],
+                    linewidth=2.5,
+                    label='$K_e$')
+plot_phases_II(ax[1,1])
+ax[1,1].legend(handles=[rPm, rPe, rKm, rKe, C], ncol=3, loc='lower center')
+ax[1,1].set_ylim([-3.2, 2.6])
+ax[1,1].set_xlabel('year', fontsize=12)
+ax[1,1].set_ylabel('normalized amplitude', fontsize=12)
+ax[1,1].set_title('e) Energy reservoirs in SO30 region', fontsize=12)
+
+
+C,    = ax[1,2].plot(ts,(MXL-np.mean(MXL))/np.std(MXL),
+                     color='k',
+                     linewidth=1.5,
+                     label='MLD')
+cPKm, = ax[1,2].plot(ts,(np.squeeze(data_SO30[14,:])-np.mean(np.squeeze(data_SO30[14,:])))/np.std(np.squeeze(data_SO30[14,:])),
+                     color=sns.color_palette()[0],
+                     linewidth=2.5,
+                     label='$C(P_m,K_m)$')
+cPKe, = ax[1,2].plot(ts,(np.squeeze(data_SO30[15,:])-np.mean(np.squeeze(data_SO30[15,:])))/np.std(np.squeeze(data_SO30[15,:])),
+                     color=sns.color_palette()[1],
+                     linewidth=2.5,
+                     label='$C(P_e,K_e)$')
+cPem, = ax[1,2].plot(ts,(np.squeeze(data_SO30[12,:])-np.mean(np.squeeze(data_SO30[12,:])))/np.std(np.squeeze(data_SO30[12,:])),
+                     color=sns.color_palette()[2],
+                     linewidth=2.5,
+                     label='$C(P_e,P_m)$')
+cKem, = ax[1,2].plot(ts,(np.squeeze(data_SO30[13,:])-np.mean(np.squeeze(data_SO30[13,:])))/np.std(np.squeeze(data_SO30[13,:])),
+                     color=sns.color_palette()[9],
+                     linewidth=2.5,
+                     label='$C(K_e,K_m)$')
+
+plot_phases_II(ax[1,2])
+ax[1,2].legend(handles=[cPKm, cPKe, cPem, cKem, C], ncol=3, loc='lower center', handletextpad=0.5, columnspacing=1)
+ax[1,2].set_ylim([-3.2, 2.6])
+ax[1,2].set_xlabel('year', fontsize=12)
+ax[1,2].set_ylabel('normalized amplitude', fontsize=12)
+ax[1,2].set_title('f) Energy conversion in SO30 region', fontsize=12)
+
+
+f.tight_layout()
+
+plt.savefig('../../results/SOM_paper/Figure_10', dpi=100, author='Andre Jueling')
+plt.savefig('../../results/SOM_paper/Figure_10.eps', format='eps', dpi=100, author='Andre Jueling')
+plt.savefig('../../results/SOM_paper/Figure_10.pdf', format='pdf', dpi=100, author='Andre Jueling')
+
 
 
 """ Suppl. Figure 2 """
